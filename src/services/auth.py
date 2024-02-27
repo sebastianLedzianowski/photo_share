@@ -12,10 +12,10 @@ import pickle
 
 from src.database.db import get_db
 from src.repository import users as repository_users
-from dotenv import load_dotenv
 
-load_dotenv()
+from src.secrets_manager import get_secret
 
+REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, SECRET_KEY, ALGORITHM = get_secret()
 
 class Auth:
     """
@@ -30,12 +30,12 @@ class Auth:
     """
     pwd_context = CryptContext(schemes=["bcrypt"],
                                deprecated="auto")
-    SECRET_KEY = os.getenv("SECRET_KEY")
-    ALGORITHM = os.getenv("ALGORITHM")
+    SECRET_KEY = SECRET_KEY
+    ALGORITHM = ALGORITHM
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-    r = redis.Redis(host=os.getenv('REDIS_HOST'),
-                    port=os.getenv('REDIS_PORT'),
-                    password=os.getenv("REDIS_PASSWORD"))
+    r = redis.Redis(host=REDIS_HOST,
+                    port=REDIS_PORT,
+                    password=REDIS_PASSWORD)
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """

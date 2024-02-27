@@ -1,4 +1,9 @@
-from pydantic_settings import BaseSettings
+import os
+from dotenv import load_dotenv
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 class Settings(BaseSettings):
     """
@@ -28,6 +33,8 @@ class Settings(BaseSettings):
            env_file (str): The path to the environment file.
            env_file_encoding (str): The encoding of the environment file.
        """
+    model_config = SettingsConfigDict(secrets_dir=os.getenv("SECRET_NAME"))
+
     sqlalchemy_database_url: str
 
     secret_key: str
@@ -50,9 +57,5 @@ class Settings(BaseSettings):
     cloudinary_name: str
     cloudinary_api_key: str
     cloudinary_api_secret: str
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 settings = Settings()

@@ -4,23 +4,23 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from fastapi_mail.errors import ConnectionErrors
 from pydantic import EmailStr
 
+from src.secrets_manager import get_secret
 from src.services.auth import auth_service
 
-import os
-from dotenv import load_dotenv
-load_dotenv()
+MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, MAIL_PORT, MAIL_SERVER, MAIL_FROM_NAME, MAIL_STARTTLS,\
+    MAIL_SSL_TLS, USE_CREDENTIALS, VALIDATE_CERTS = get_secret()
 
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM="example@meta.ua",
-    MAIL_PORT=os.getenv("MAIL_PORT"),
-    MAIL_SERVER=os.getenv("MAIL_SERVER"),
-    MAIL_FROM_NAME=os.getenv("MAIL_FROM"),
-    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS"),
-    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS"),
-    USE_CREDENTIALS=os.getenv("USE_CREDENTIALS"),
-    VALIDATE_CERTS=os.getenv("VALIDATE_CERTS"),
+    MAIL_USERNAME=MAIL_USERNAME,
+    MAIL_PASSWORD=MAIL_PASSWORD,
+    MAIL_FROM=MAIL_FROM,
+    MAIL_PORT=MAIL_PORT,
+    MAIL_SERVER=MAIL_SERVER,
+    MAIL_FROM_NAME=MAIL_FROM,
+    MAIL_STARTTLS=MAIL_STARTTLS,
+    MAIL_SSL_TLS=MAIL_SSL_TLS,
+    USE_CREDENTIALS=USE_CREDENTIALS,
+    VALIDATE_CERTS=VALIDATE_CERTS,
     TEMPLATE_FOLDER=Path(__file__).parent / 'templates',
 )
 
