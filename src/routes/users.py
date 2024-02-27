@@ -11,6 +11,7 @@ from src.services.auth import auth_service
 from src.conf.config import settings
 from src.schemas import UserDb
 
+
 router = APIRouter(prefix="/users", tags=["users"])
 
 rate_limit = RateLimiter(times=10, seconds=60)

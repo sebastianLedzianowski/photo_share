@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi_limiter import FastAPILimiter
 
 
-from src.routes import users
+from src.routes import users, auth
 
 import os
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ load_dotenv()
 
 app = FastAPI()
 
-
+app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 
 @app.on_event("startup")

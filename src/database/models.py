@@ -17,7 +17,8 @@ class User(Base):
         avatar (str): Filepath to the user's avatar (nullable).
         refresh_token (str): Refresh token for the user (nullable).
         confirmed (bool): Flag indicating whether the user is confirmed.
-        level (int): A number constituting the level of access to the API.
+        admin (bool): Flag indicating whether the user has admin privileges.
+        moderator (bool): Flag indicating whether the user has moderator permissions.
     """
     __tablename__ = "users"
 
@@ -29,7 +30,8 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     refresh_token = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
-    level = Column(Integer, nullable=False,)
+    admin = Column(Boolean, default=False)
+    moderator = Column(Boolean, default=False)
 
     def dict(self):
         """
@@ -47,5 +49,6 @@ class User(Base):
             "avatar": self.avatar,
             "refresh_token": self.refresh_token,
             "confirmed": self.confirmed,
-            "level": self.level
+            "admin": self.admin,
+            "moderator": self.moderator
         }

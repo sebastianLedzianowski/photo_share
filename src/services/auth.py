@@ -28,11 +28,14 @@ class Auth:
         oauth2_scheme (OAuth2PasswordBearer): OAuth2 password bearer for token retrieval.
         r (redis.Redis): Redis instance for caching user data.
     """
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    pwd_context = CryptContext(schemes=["bcrypt"],
+                               deprecated="auto")
     SECRET_KEY = os.getenv("SECRET_KEY")
     ALGORITHM = os.getenv("ALGORITHM")
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-    r = redis.Redis(host=os.getenv('REDIS_HOST'), port=os.getenv('REDIS_PORT'), db=os.getenv('REDIS_DB'))
+    r = redis.Redis(host=os.getenv('REDIS_HOST'),
+                    port=os.getenv('REDIS_PORT'),
+                    db=os.getenv('REDIS_DB'))
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """
