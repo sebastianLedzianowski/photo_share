@@ -17,9 +17,6 @@ class Settings(BaseSettings):
            mail_ssl_tls (bool): Flag indicating whether to use SSL/TLS for mail.
            use_credentials (bool): Flag indicating whether to use credentials.
            validate_certs (bool): Flag indicating whether to validate certificates.
-           postgres_db (str): The name of the PostgreSQL database.
-           postgres_user (str): The username for PostgreSQL.
-           postgres_password (str): The password for PostgreSQL.
            redis_host (str): The hostname of the Redis server.
            redis_port (int): The port for the Redis server.
            redis_password (str): The Redis database password.
@@ -45,10 +42,6 @@ class Settings(BaseSettings):
     mail_ssl_tls: bool
     use_credentials: bool
     validate_certs: bool
-
-    postgres_db: str
-    postgres_user: str
-    postgres_password: str
 
     redis_host: str
     redis_port: int
