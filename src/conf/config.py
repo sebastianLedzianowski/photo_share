@@ -22,7 +22,7 @@ class Settings(BaseSettings):
            postgres_password (str): The password for PostgreSQL.
            redis_host (str): The hostname of the Redis server.
            redis_port (int): The port for the Redis server.
-           redis_db (int): The Redis database number.
+           redis_password (str): The Redis database password.
            cloudinary_name (str): The name of the Cloudinary account.
            cloudinary_api_key (str): The API key for Cloudinary.
            cloudinary_api_secret (str): The API secret for Cloudinary.
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     redis_host: str
     redis_port: int
-    redis_db: int
+    redis_password: str
 
     cloudinary_name: str
     cloudinary_api_key: str
