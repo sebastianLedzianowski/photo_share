@@ -35,7 +35,7 @@ class Auth:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
     r = redis.Redis(host=os.getenv('REDIS_HOST'),
                     port=os.getenv('REDIS_PORT'),
-                    db=os.getenv('REDIS_DB'))
+                    password=os.getenv("REDIS_PASSWORD"))
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """

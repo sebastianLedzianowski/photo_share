@@ -22,9 +22,12 @@ async def startup():
     Function to initialize FastAPILimiter on application startup.
     """
     r = await redis.Redis(
-        host=os.getenv('REDIS_HOST'),
-        port=int(os.getenv('REDIS_PORT')),
-        password=os.getenv('REDIS_PASSWORD'))
+        host=os.getenv("REDIS_HOST"),
+        port=int(os.getenv("REDIS_PORT")),
+        password=os.getenv("REDIS_PASSWORD"),
+        encoding="utf-8",
+        decode_responses=True
+    )
     await FastAPILimiter.init(r)
 
 
