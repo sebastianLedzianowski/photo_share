@@ -1,13 +1,12 @@
 import boto3
 from botocore.exceptions import ClientError
-
+import json
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-def get_secret():
-
+def get_secret(key):
     secret_name = os.getenv("SECRET_NAME")
     region_name = os.getenv("REGION_NAME")
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
@@ -26,9 +25,14 @@ def get_secret():
             SecretId=secret_name
         )
         secret = get_secret_value_response['SecretString']
-        print("Successfully retrieved secret.")
-        return secret
+        parsed_secret = json.loads(secret)
+        value = parsed_secret.get(key)
+        if value is not None:
+            print(f"Successfully retrieved value for key '{key}'")
+            return value
+        else:
+            print(f"Key '{key}' not found in the secret.")
+            return None
     except ClientError as e:
         print(f"Error retrieving secret: {e}")
         raise e
-

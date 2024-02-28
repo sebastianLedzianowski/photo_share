@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.secrets_manager import get_secret
 
-SQLALCHEMY_DATABASE_URL = get_secret()
+SQLALCHEMY_DATABASE_URL = get_secret("SQLALCHEMY_DATABASE_URL")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

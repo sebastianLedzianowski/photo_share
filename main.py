@@ -14,7 +14,9 @@ app = FastAPI()
 app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 
-REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = get_secret()
+REDIS_HOST = get_secret("REDIS_HOST")
+REDIS_PORT = get_secret("REDIS_PORT")
+REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
 
 @app.on_event("startup")
 async def startup():

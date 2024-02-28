@@ -7,8 +7,16 @@ from pydantic import EmailStr
 from src.secrets_manager import get_secret
 from src.services.auth import auth_service
 
-MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, MAIL_PORT, MAIL_SERVER, MAIL_FROM_NAME, MAIL_STARTTLS,\
-    MAIL_SSL_TLS, USE_CREDENTIALS, VALIDATE_CERTS = get_secret()
+MAIL_USERNAME = get_secret("MAIL_USERNAME")
+MAIL_PASSWORD = get_secret("MAIL_PASSWORD")
+MAIL_FROM = get_secret("MAIL_FROM")
+MAIL_PORT = get_secret("MAIL_PORT")
+MAIL_SERVER = get_secret("MAIL_SERVER")
+MAIL_FROM_NAME = get_secret("MAIL_FROM_NAME")
+MAIL_STARTTLS = get_secret("MAIL_STARTTLS")
+MAIL_SSL_TLS = get_secret("MAIL_SSL_TLS")
+USE_CREDENTIALS = get_secret("USE_CREDENTIALS")
+VALIDATE_CERTS = get_secret("VALIDATE_CERTS")
 
 conf = ConnectionConfig(
     MAIL_USERNAME=MAIL_USERNAME,

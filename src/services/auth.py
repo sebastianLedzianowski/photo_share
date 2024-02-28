@@ -15,7 +15,11 @@ from src.repository import users as repository_users
 
 from src.secrets_manager import get_secret
 
-REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, SECRET_KEY, ALGORITHM = get_secret()
+REDIS_HOST = get_secret("REDIS_HOST")
+REDIS_PORT = get_secret("REDIS_PORT")
+REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
+SECRET_KEY = get_secret("SECRET_KEY")
+ALGORITHM = get_secret("ALGORITHM")
 
 class Auth:
     """
