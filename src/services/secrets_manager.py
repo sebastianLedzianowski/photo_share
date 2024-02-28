@@ -28,7 +28,6 @@ def get_secret(key):
         parsed_secret = json.loads(secret)
         value = parsed_secret.get(key)
         if value is not None:
-            print(f"Successfully retrieved value for key '{key}'")
             return value
         else:
             print(f"Key '{key}' not found in the secret.")

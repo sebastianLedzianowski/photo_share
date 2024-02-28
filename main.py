@@ -7,7 +7,7 @@ from fastapi_limiter import FastAPILimiter
 
 from src.routes import users, auth
 
-from src.secrets_manager import get_secret
+from src.services.secrets_manager import get_secret
 
 app = FastAPI()
 

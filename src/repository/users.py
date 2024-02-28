@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from src.database.models import User
 from src.schemas import UserModel
+from src.services.auth import auth_service
+
 
 async def get_user_by_email(email: str, db: Session) -> Type[User]:
     """
@@ -75,3 +77,22 @@ async def update_avatar(email, url: str, db: Session) -> User:
     user.avatar = url
     db.commit()
     return user
+
+
+async def store_reset_token(user: UserModel, reset_token: str, db: Session):
+    user.reset_token = reset_token
+    db.commit()
+
+
+async def verify_reset_token(user: UserModel, token: str, db: Session) -> bool:
+    return user.reset_token == token
+
+
+async def delete_reset_token(user: UserModel, db: Session):
+    user.reset_token = None
+    db.commit()
+
+
+async def upgrade_password(user: UserModel, new_password: str, db: Session):
+    user.password = auth_service.get_password_hash(new_password)
+    db.commit()

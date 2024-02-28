@@ -10,7 +10,11 @@ from src.repository import users as repository_users
 from src.services.auth import auth_service
 from src.conf.config import settings
 from src.schemas import UserDb
+from src.services.secrets_manager import get_secret
 
+CLOUDINARY_NAME = get_secret("CLOUDINARY_NAME")
+CLOUDINARY_API_KEY = get_secret("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = get_secret("CLOUDINARY_API_SECRET")
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -46,9 +50,9 @@ async def update_avatar_user(file: UploadFile = File(),
         UserDb: The updated user profile.
     """
     cloudinary.config(
-        cloud_name=settings.cloudinary_name,
-        api_key=settings.cloudinary_api_key,
-        api_secret=settings.cloudinary_api_secret,
+        cloud_name=CLOUDINARY_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
         secure=True
     )
 

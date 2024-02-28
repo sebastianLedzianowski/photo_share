@@ -1,4 +1,3 @@
-import os
 from typing import Optional, Dict, Union
 
 import redis as redis
@@ -13,7 +12,7 @@ import pickle
 from src.database.db import get_db
 from src.repository import users as repository_users
 
-from src.secrets_manager import get_secret
+from src.services.secrets_manager import get_secret
 
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
@@ -208,5 +207,22 @@ class Auth:
             print(e)
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Invalid token for email verification")
+
+
+    def create_reset_token(self, data: Dict[str, Union[str, int]]) -> str:
+        """
+        Create a reset token for password reset.
+
+        Args:
+            data (Dict[str, Union[str, int]]): Payload data for the token.
+
+        Returns:
+            str: The encoded reset token.
+        """
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=30)
+        to_encode.update({"iat": datetime.utcnow(), "exp": expire, "scope": "reset_token"})
+        encoded_reset_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        return encoded_reset_token
 
 auth_service = Auth()
