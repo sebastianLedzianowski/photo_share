@@ -8,7 +8,7 @@ from tests.conftest import login_user_token_created, create_user_db, \
 
 def test_create_user(client, user, monkeypatch):
     mock_send_email = MagicMock()
-    monkeypatch.setattr("src.routes.auth.send_email", mock_send_email)
+    monkeypatch.setattr("src.routes.auth.send_verification_email", mock_send_email)
 
     response = client.post("/api/auth/signup", json=user.dict())
 
