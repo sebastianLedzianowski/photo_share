@@ -11,7 +11,6 @@ class UserModel(BaseModel):
     username: str = Field(min_length=5, max_length=16)
     email: EmailStr
     password: str = Field(min_length=6, max_length=20)
-    reset_token: Optional[str] = None
 
 
 class UserDb(BaseModel):
