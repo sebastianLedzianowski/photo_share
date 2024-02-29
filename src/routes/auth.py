@@ -159,7 +159,7 @@ async def request_email(body: RequestEmail,
 async def request_password_reset(body: RequestEmail,
                                  background_tasks: BackgroundTasks,
                                  request: Request,
-                                 db: Session = Depends(get_db)) -> dict:
+                                 db: Session = Depends(get_db)) -> JSONResponse:
     """
     Request email reset password for a user.
 
@@ -172,16 +172,14 @@ async def request_password_reset(body: RequestEmail,
     Returns:
         dict: Response message.
     """
-    try:
-        user = await repository_users.get_user_by_email(body.email, db)
+    user = await repository_users.get_user_by_email(body.email, db)
 
-        if user:
-            background_tasks.add_task(send_reset_email, user.email, str(request.base_url))
-            return {"message": "Password reset email sent."}
-        else:
-            return {"message": "User not found."}
-    except Exception as e:
-        return {"message": f"Error in request_password_reset: {e}"}
+    if user is None:
+        return JSONResponse(status_code=400, content={"detail": "Verification error."})
+    else:
+        background_tasks.add_task(send_reset_email, user.email, str(request.base_url))
+        return JSONResponse(status_code=200, content={"message": "Password reset email sent."})
+
 
 
 @router.get("/reset_password/{token}", response_class=HTMLResponse)
@@ -218,24 +216,20 @@ async def reset_password_post(token: str,
     Returns:
         dict: Response message.
     """
-    try:
-        email = await auth_service.get_email_from_token(token)
-        user = await repository_users.get_user_by_email(email, db)
+    email = await auth_service.get_email_from_token(token)
+    user = await repository_users.get_user_by_email(email, db)
 
-        if user is None:
-            return JSONResponse(status_code=400, content={"detail": "Verification error."})
+    if user is None:
+        return JSONResponse(status_code=400, content={"detail": "Verification error."})
 
-        await repository_users.upgrade_password(user, new_password, db)
-        return {"message": "Password reset successfully."}
-
-    except HTTPException as e:
-        return {"massage": str(e)}
+    await repository_users.upgrade_password(user, new_password, db)
+    return JSONResponse(status_code=200, content={"message": "Password reset successfully."})
 
 
 @router.post('/change_password')
 async def change_password(current_password: str,
                           new_password: str,
-                          new_password_reaped: str,
+                          confirm_password: str,
                           db: Session = Depends(get_db),
                           current_user: User = Depends(auth_service.get_current_user)
                           ) -> JSONResponse:
@@ -245,7 +239,7 @@ async def change_password(current_password: str,
     Args:
         current_password (str): Current password.
         new_password (str): New password.
-        new_password_reaped (str): New password reaped.
+        confirm_password (str): New password reaped.
         db (Session): SQLAlchemy database session.
         current_user (User): Current authenticated user.
 
@@ -256,7 +250,7 @@ async def change_password(current_password: str,
     if not auth_service.verify_password(current_password, current_user.password):
         return JSONResponse(status_code=401,
                             content={"detail": "Current password is incorrect."})
-    elif new_password != new_password_reaped:
+    elif new_password != confirm_password:
         return JSONResponse(status_code=400,
                             content={"message": "The provided passwords do not match."})
 
