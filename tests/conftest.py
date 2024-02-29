@@ -92,3 +92,47 @@ def login_user_token_created(user, session):
     session.commit()
 
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
+
+
+@pytest.fixture
+def fake_db_for_message_test():
+    '''
+    This fixture is used to fake db for message testing
+    '''
+    # Initialize the fake database structure
+    db = {"users": {}, "messages": {}, "next_user_id": 1, "next_message_id": 1}
+
+    def create_user(email, username, password):
+        user_id = db["next_user_id"]
+        db["users"][user_id] = {
+            "id": user_id,
+            "email": email,
+            "username": username,
+            "password": password
+        }
+        db["next_user_id"] += 1
+        return db["users"][user_id]
+
+    def create_message(sender_id, receiver_id, content):
+        if sender_id not in db["users"] or receiver_id not in db["users"]:
+            raise ValueError("Sender or Receiver does not exist.")
+        message_id = db["next_message_id"]
+        db["messages"][message_id] = {
+            "id": message_id,
+            "sender_id": sender_id,
+            "receiver_id": receiver_id,
+            "content": content
+        }
+        db["next_message_id"] += 1
+        return db["messages"][message_id]
+
+    def get_messages_for_user(user_id):
+        if user_id not in db["users"]:
+            raise ValueError("User does not exist.")
+        return [msg for msg in db["messages"].values() if msg["sender_id"] == user_id or msg["receiver_id"] == user_id]
+
+    db["create_user"] = create_user
+    db["create_message"] = create_message
+    db["get_messages_for_user"] = get_messages_for_user
+
+    return db
