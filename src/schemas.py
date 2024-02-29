@@ -49,3 +49,25 @@ class RequestEmail(BaseModel):
     Schema for the request containing an email address.
     """
     email: EmailStr
+
+
+class MessageBase(BaseModel):
+    sender_id: int
+    receiver_id: int
+    content: str
+
+
+class MessageModel(MessageBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class MessageResponse(MessageBase):
+    id: int
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
