@@ -79,20 +79,14 @@ async def update_avatar(email, url: str, db: Session) -> User:
     return user
 
 
-async def store_reset_token(user: UserModel, reset_token: str, db: Session):
-    user.reset_token = reset_token
-    db.commit()
-
-
-async def verify_reset_token(user: UserModel, token: str, db: Session) -> bool:
-    return user.reset_token == token
-
-
-async def delete_reset_token(user: UserModel, db: Session):
-    user.reset_token = None
-    db.commit()
-
-
 async def upgrade_password(user: UserModel, new_password: str, db: Session):
+    """
+    Upgrade the password for a user.
+
+    Args:
+        user (UserModel): The user for whom to upgrade the password.
+        new_password (str): The new password.
+        db (Session): SQLAlchemy database session.
+    """
     user.password = auth_service.get_password_hash(new_password)
     db.commit()
