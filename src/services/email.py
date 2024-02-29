@@ -31,64 +31,69 @@ conf = ConnectionConfig(
     TEMPLATE_FOLDER=Path(__file__).parent / 'templates',
 )
 
-async def send_email(email: EmailStr, username: str, host: str) -> None:
+async def send_email(email: EmailStr,
+                     subject: str,
+                     host: str,
+                     token: str,
+                     template: str) -> None:
     """
     Send email with a verification token link for email confirmation.
 
     Args:
         email (EmailStr): The recipient's email address.
-        username (str): The username of the recipient.
+        subject (str): The username of the recipient.
         host (str): The base URL for the application.
+        token (str):
+        template (html):
+
 
     Raises:
         ConnectionErrors: If there is an error connecting to the mail server.
     """
     try:
-        token_verification = auth_service.create_email_token({"sub": email})
-        message = MessageSchema(
-            subject="Confirm your email ",
+        send_message = MessageSchema(
+            subject=subject,
             recipients=[email],
-            template_body={"host": host, "username": username, "token": token_verification},
+            template_body={"host": host, "token": token},
             subtype=MessageType.html
         )
 
         fm = FastMail(conf)
-        await fm.send_message(message, template_name="email_template.html")
+        await fm.send_message(send_message, template_name=template)
     except ConnectionErrors as err:
         print(err)
 
-async def send_verification_email(email: str, username: str, host: str) -> None:
+async def send_verification_email(email: str, host: str) -> None:
     """
     Send email with a verification token link for email confirmation.
 
     Args:
         email (str): The recipient's email address.
-        username (str): The username of the recipient.
         host (str): The base URL for the application.
 
     Raises:
         ConnectionErrors: If there is an error connecting to the mail server.
     """
     subject = "Confirm your email"
-    verification_token = auth_service.create_email_token({"sub": email})
-    message = f"Click the following link to confirm your email: {host}/verify-email?token={verification_token}"
+    token = auth_service.create_email_token({"sub": email})
+    template = "email_verification_template.html"
 
-    await send_email(email, subject, message)
+    await send_email(email=email, subject=subject, host=host, token=token, template=template)
 
 
-async def send_reset_email(email: str, reset_token: str, host: str) -> None:
+async def send_reset_email(email: str, host: str) -> None:
     """
     Send email with a password reset token link.
 
     Args:
         email (str): The recipient's email address.
-        reset_token (str): The password reset token.
         host (str): The base URL for the application.
 
     Raises:
         ConnectionErrors: If there is an error connecting to the mail server.
     """
     subject = "Password Reset Request"
-    message = f"Click the following link to reset your password: {host}/reset-password?token={reset_token}"
+    token = auth_service.create_email_token({"sub": email})
+    template = "password_reset_template.html"
 
-    await send_email(email, subject, message)
+    await send_email(email=email, subject=subject, host=host, token=token, template=template)
