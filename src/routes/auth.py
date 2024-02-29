@@ -185,6 +185,17 @@ async def request_password_reset(body: RequestEmail,
 
 @router.get("/reset_password/{token}", response_class=HTMLResponse)
 async def reset_password(request: Request, token: str = None, error: str = None):
+    """
+    Display the password reset form.
+
+    Args:
+        request (Request): The incoming request.
+        token (str): Reset password token.
+        error (str): Error message.
+
+    Returns:
+        HTMLResponse: HTML template response.
+    """
     return templates.TemplateResponse(
         request=request,
         name="reset_password.html",
@@ -195,6 +206,17 @@ async def reset_password(request: Request, token: str = None, error: str = None)
 async def reset_password_post(token: str,
                               new_password: str = Form(...),
                               db: Session = Depends(get_db)) -> JSONResponse | dict:
+    """
+    Handle the submission of the password reset form.
+
+    Args:
+        token (str): Reset password token.
+        new_password (str): New password.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Response message.
+    """
     try:
         email = await auth_service.get_email_from_token(token)
         user = await repository_users.get_user_by_email(email, db)
