@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, status, Security, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, status, Security, BackgroundTasks, Request, HTTPException, Form
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+
 from sqlalchemy.orm import Session
 
-from src.services.email import send_email
+from src.services.email import send_verification_email, send_reset_email
 from src.database.db import get_db
 from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail
 from src.repository import users as repository_users
@@ -11,6 +13,7 @@ from src.services.auth import auth_service
 
 router = APIRouter(prefix='/auth', tags=["auth"])
 security = HTTPBearer()
+templates = Jinja2Templates(directory="templates")
 
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -36,10 +39,9 @@ async def signup(body: UserModel,
 
     body.password = auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, db)
-    background_tasks.add_task(send_email, new_user.email, new_user.username, request.base_url)
+    background_tasks.add_task(send_verification_email, new_user.email, str(request.base_url))
 
     return {"user": new_user, "detail": "User successfully created. Check your email for confirmation."}
-
 
 
 @router.post("/login", response_model=TokenModel)
@@ -100,6 +102,7 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(sec
     await repository_users.update_token(user, refresh_token_, db)
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
 
+
 @router.get('/confirmed_email/{token}', response_model=None)
 async def confirmed_email(token: str,
                           db: Session = Depends(get_db)) -> JSONResponse | dict:
@@ -124,6 +127,7 @@ async def confirmed_email(token: str,
     await repository_users.confirmed_email(email, db)
     return {"message": "Email confirmed."}
 
+
 @router.post('/request_email')
 async def request_email(body: RequestEmail,
                         background_tasks: BackgroundTasks,
@@ -146,5 +150,60 @@ async def request_email(body: RequestEmail,
     if user.confirmed:
         return {"message": "Your email is already confirmed."}
     if user.confirmed is False:
-        background_tasks.add_task(send_email, user.email, user.username, request.base_url)
+        background_tasks.add_task(send_verification_email, user.email, str(request.base_url))
         return {"message": "Check your email for confirmation."}
+
+
+@router.post('/reset_password/request')
+async def request_password_reset(body: RequestEmail,
+                                 background_tasks: BackgroundTasks,
+                                 request: Request,
+                                 db: Session = Depends(get_db)) -> dict:
+    """
+    Request email reset password for a user.
+
+    Args:
+        body (RequestEmail): Request body containing user email.
+        background_tasks (BackgroundTasks): Background tasks to execute.
+        request (Request): The incoming request.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Response message.
+    """
+    try:
+        user = await repository_users.get_user_by_email(body.email, db)
+
+        if user:
+            background_tasks.add_task(send_reset_email, user.email, str(request.base_url))
+            return {"message": "Password reset email sent."}
+        else:
+            return {"message": "User not found."}
+    except Exception as e:
+        return {"message": f"Error in request_password_reset: {e}"}
+
+
+@router.get("/reset_password/{token}", response_class=HTMLResponse)
+async def reset_password(request: Request, token: str = None, error: str = None):
+    return templates.TemplateResponse(
+        request=request,
+        name="reset_password.html",
+        context={"request": request, "token": token, "error": error})
+
+
+@router.post('/reset_password/{token}', response_model=None)
+async def reset_password_post(token: str,
+                              new_password: str = Form(...),
+                              db: Session = Depends(get_db)) -> JSONResponse | dict:
+    try:
+        email = await auth_service.get_email_from_token(token)
+        user = await repository_users.get_user_by_email(email, db)
+
+        if user is None:
+            return JSONResponse(status_code=400, content={"detail": "Verification error."})
+
+        await repository_users.upgrade_password(user, new_password, db)
+        return {"message": "Password reset successfully."}
+
+    except HTTPException as e:
+        return {"massage": str(e)}

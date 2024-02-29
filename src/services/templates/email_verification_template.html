@@ -7,9 +7,11 @@
 </head>
 <body>
     <h1>Email Verification</h1>
-    <p>Hello {{ username }},</p>
+    <p>Hello,</p>
     <p>Thank you for registering. Please click the link below to verify your email:</p>
-    <a href="{{ verification_link }}" target="_blank">{{ verification_link }}</a>
+    <a href="{{host}}api/auth/confirmed_email/{{token}}">
+        Verification
+    </a>
     <p>If you didn't register, you can ignore this email.</p>
 </body>
 </html>
