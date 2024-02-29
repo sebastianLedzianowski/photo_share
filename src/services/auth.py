@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 import pickle
 
 from src.database.db import get_db
+from src.database.models import User
 from src.repository import users as repository_users
 
 from src.services.secrets_manager import get_secret
@@ -64,6 +65,11 @@ class Auth:
             str: The hashed password.
         """
         return self.pwd_context.hash(password)
+
+    async def upgrade_password(self, user: User, password: str, db: Session) -> None:
+        password_hash = self.get_password_hash(password)
+        user.password = password_hash
+        db.commit()
 
     def create_access_token(self, data: Dict[str, Union[str, int]], expires_delta: Optional[float] = None) -> str:
         """

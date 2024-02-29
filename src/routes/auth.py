@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 
 from sqlalchemy.orm import Session
 
+from src.database.models import User
 from src.services.email import send_verification_email, send_reset_email
 from src.database.db import get_db
 from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail
@@ -229,3 +230,36 @@ async def reset_password_post(token: str,
 
     except HTTPException as e:
         return {"massage": str(e)}
+
+
+@router.post('/change_password')
+async def change_password(current_password: str,
+                          new_password: str,
+                          new_password_reaped: str,
+                          db: Session = Depends(get_db),
+                          current_user: User = Depends(auth_service.get_current_user)
+                          ) -> JSONResponse:
+    """
+    Change the password for the current user.
+
+    Args:
+        current_password (str): Current password.
+        new_password (str): New password.
+        new_password_reaped (str): New password reaped.
+        db (Session): SQLAlchemy database session.
+        current_user (User): Current authenticated user.
+
+    Returns:
+        Union[JSONResponse, dict]: Response message.
+    """
+
+    if not auth_service.verify_password(current_password, current_user.password):
+        return JSONResponse(status_code=401,
+                            content={"detail": "Current password is incorrect."})
+    elif new_password != new_password_reaped:
+        return JSONResponse(status_code=400,
+                            content={"message": "The provided passwords do not match."})
+
+    await auth_service.upgrade_password(current_user, new_password, db)
+    return JSONResponse(status_code=200,
+                        content={"message": "Password changed successfully."})
