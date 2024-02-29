@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from fastapi.templating import Jinja2Templates
 
 from main import app
 from src.database.models import Base, User
@@ -17,6 +18,8 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+templates = Jinja2Templates(directory="templates")
 
 @pytest.fixture(scope="function", autouse=True)
 def session():
@@ -60,7 +63,7 @@ def user():
     return UserTest(id=1,
                     username="example",
                     email="example@example.com",
-                    password="789789789")
+                    password="secret")
 
 
 def create_user_db(body: user, db: session):
