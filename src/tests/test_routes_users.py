@@ -1,5 +1,4 @@
-from tests.test_routes_auth import login_user_token_created
-from src.routes.users import rate_limit
+from src.tests.test_routes_auth import login_user_token_created
 from PIL import Image
 from io import BytesIO
 

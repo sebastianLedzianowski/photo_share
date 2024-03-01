@@ -90,3 +90,7 @@ class MessageResponse(MessageBase):
     class Config:
         from_attributes = True
 
+
+class MessageSend(BaseModel):
+    receiver_id: int
+    content: str

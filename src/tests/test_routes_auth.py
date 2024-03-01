@@ -1,8 +1,9 @@
 import json
 from unittest.mock import MagicMock, AsyncMock
+from fastapi.responses import HTMLResponse
 from src.database.models import User
 from src.services.auth import auth_service
-from tests.conftest import login_user_token_created, create_user_db, \
+from src.tests.conftest import login_user_token_created, create_user_db, \
     login_user_confirmed_true_and_hash_password
 
 
@@ -89,7 +90,8 @@ def test_refresh_token_invalid_user(user, session, client, monkeypatch):
     async def mock_decode_refresh_token(token):
         return user.email
 
-    monkeypatch.setattr(auth_service, "decode_refresh_token", AsyncMock(side_effect=mock_decode_refresh_token))
+    monkeypatch.setattr(auth_service, "decode_refresh_token",
+                        AsyncMock(side_effect=mock_decode_refresh_token))
 
     response = client.get(
         '/api/auth/refresh_token',
@@ -192,3 +194,129 @@ def test_request_email(user, session, client):
     assert response.status_code == 200, response.text
     data = response.json()
     assert data["message"] == "Check your email for confirmation."
+
+
+def test_request_password_reset_user_not_found(user, session, client):
+    create_user_db(user, session)
+
+    response = client.post(
+        "api/auth/reset_password/request",
+        data=json.dumps({"email": "user_not_found@example.com"})
+    )
+
+    assert response.status_code == 400, response.text
+    data = response.json()
+    assert data["detail"] == "Verification error."
+
+
+def test_request_password_reset(user, session, client):
+    create_user_db(user, session)
+
+    response = client.post(
+        "api/auth/reset_password/request",
+        data=json.dumps({"email": user.email})
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["message"] == "Password reset email sent."
+
+
+def test_reset_password_token_get(user, session, client, monkeypatch):
+    create_user_db(user, session)
+
+    async def mock_reset_password_token(token):
+        return user.email
+
+    monkeypatch.setattr(auth_service,
+                        "get_email_from_token",
+                        AsyncMock(side_effect=mock_reset_password_token))
+
+    response = client.get("api/auth/reset_password/reset_password_token")
+
+    assert response.status_code == 200
+    assert isinstance(response, HTMLResponse)
+
+
+def test_reset_password_token_push_user_is_none(user, session, client, monkeypatch):
+    create_user_db(user, session)
+
+    async def mock_reset_password_token(token):
+        return user.email
+
+    monkeypatch.setattr(auth_service,
+                        "get_email_from_token",
+                        AsyncMock(side_effect=mock_reset_password_token))
+
+    post_data = {"new_password": "NoweHaslo123"}
+    response = client.post("api/auth/reset_password/reset_password_token",
+                           json=post_data,
+                           headers={"Content-Type": "application/json"})
+
+    assert response.status_code == 400, response.text
+    data = response.json()
+    assert data["detail"] == "Verification error."
+
+
+def test_reset_password_token_push(user, session, client, monkeypatch):
+    create_user_db(user, session)
+
+    async def mock_reset_password_token(token):
+        return user.email
+
+    monkeypatch.setattr(auth_service,
+                        "get_email_from_token",
+                        AsyncMock(side_effect=mock_reset_password_token))
+
+    response = client.post("api/auth/reset_password/reset_password_token",
+                           json={"new_password": "Secret0"})
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["massage"] == "Password reset successfully."
+
+
+def test_change_password_password_is_incorrect(user, session, client):
+    new_user = login_user_token_created(user, session)
+
+    response = client.post("api/auth/change_password",
+                           headers={"Authorization": f"Bearer {new_user.get('access_token')}"},
+                           json={"current_password": "example",
+                                 "new_password": "secret1",
+                                 "confirm_password": "secret1"})
+
+    assert response.status_code == 401, response.text
+    data = response.json()
+    assert data["detail"] == "Current password is incorrect."
+
+
+def test_change_password_password_not_match(user, session, client):
+    new_user = login_user_token_created(user, session)
+
+    response = client.post("api/auth/change_password",
+                           headers={"Authorization": f"Bearer {new_user.get('access_token')}"},
+                           json={"current_password": "secret",
+                                 "new_password": "secret1",
+                                 "confirm_password": "secret2"})
+
+    assert response.status_code == 400, response.text
+    data = response.json()
+    assert data["message"] == "The provided passwords do not match."
+
+
+def test_change_password_password(user, session, client):
+    new_user = login_user_token_created(user, session)
+
+    response = client.post(
+        "api/auth/change_password",
+        headers={"Authorization": f"Bearer {new_user.get('access_token')}"},
+        json={
+            "current_password": "secret",
+            "new_password": "secret1",
+            "confirm_password": "secret1"
+        }
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["message"] == "Password changed successfully."
