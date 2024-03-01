@@ -94,3 +94,10 @@ class MessageResponse(MessageBase):
 class MessageSend(BaseModel):
     receiver_id: int
     content: str
+
+
+class TagModel(BaseModel):
+    """
+    Schema for tag input during tag creation.
+    """
+    name: str

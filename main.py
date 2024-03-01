@@ -2,7 +2,7 @@ import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI
 from fastapi_limiter import FastAPILimiter
-from src.routes import users, auth, messages, pictures_oktawian
+from src.routes import users, auth, messages, pictures_oktawian, tags
 from src.services.secrets_manager import get_secret
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -26,6 +26,8 @@ app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
+app.include_router(tags.router, prefix='/api')
+
 
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
