@@ -5,7 +5,7 @@ from fastapi.params import Depends
 from sqlalchemy.orm import Session
 
 from src.database.models import User
-from src.schemas import MessageModel, MessageResponse
+from src.schemas import MessageModel, MessageResponse, MessageSend
 from src.database.db import get_db
 from src.repository import messages as repository_messages
 from src.services.auth import auth_service
@@ -15,7 +15,7 @@ router = APIRouter(prefix='/messages', tags=["messages"])
 
 @router.post('/', response_model=MessageModel)
 async def create_message(
-        body: MessageModel,
+        body: MessageSend,
         db: Session = Depends(get_db),
         current_user: User = Depends(auth_service.get_current_user)
 ):
@@ -30,14 +30,20 @@ async def create_message(
     - body (MessageModel): A Pydantic model that includes the sender_id, receiver_id, and content
       of the message. This is parsed from the request body.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency
-      injection system. Defaults to Depends(get_db).
+      injection system.
 
     Returns:
     - The created message as a MessageModel instance, including the newly assigned message ID.
     """
-    if body.sender_id != current_user.id and body.receiver_id != current_user.id:
-        raise HTTPException(status_code=400, detail="You can only send messages from or to yourself.")
-    return await repository_messages.create_message(body=body, db=db)
+    message = await repository_messages.create_message(
+        db=db,
+        sender_id=current_user.id,
+        receiver_id=body.receiver_id,
+        content=body.content
+    )
+    if not message:
+        raise HTTPException(status_code=400, detail="Message could not be created.")
+    return message
 
 
 @router.get('/user/{user_id}', response_model=List[MessageResponse])
@@ -55,7 +61,7 @@ async def get_messages_for_user(
     - user_id (int): The ID of the user whose messages are to be retrieved. This is captured
       from the URL path.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency
-      injection system. Defaults to Depends(get_db).
+      injection system.
 
     Returns:
     - A list of MessageResponse models representing all relevant messages. Each MessageResponse

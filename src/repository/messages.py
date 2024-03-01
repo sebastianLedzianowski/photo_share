@@ -2,11 +2,13 @@ from typing import List
 
 from sqlalchemy.orm import Session
 from src.database.models import Message
-from src.schemas import MessageModel, MessageResponse
+from src.schemas import MessageResponse
 
 
 async def create_message(
-        body: MessageModel,
+        sender_id: int,
+        receiver_id: int,
+        content: str,
         db: Session
 ) -> Message:
     """
@@ -25,9 +27,9 @@ async def create_message(
     Returns:
     - Message: The newly created Message object, refreshed from the database.
     """
-    db_message = Message(sender_id=body.sender_id,
-                         receiver_id=body.receiver_id,
-                         content=body.content)
+    db_message = Message(sender_id=sender_id,
+                         receiver_id=receiver_id,
+                         content=content)
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
