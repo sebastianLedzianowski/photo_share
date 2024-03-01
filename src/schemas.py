@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
 
@@ -48,6 +49,25 @@ class RequestEmail(BaseModel):
     Schema for the request containing an email address.
     """
     email: EmailStr
+
+
+class PictureBase(BaseModel):
+    rating: Optional[float] = None
+    description: Optional[str] = None
+
+
+class PictureModel(PictureBase):
+    tags: List[int]
+
+
+class PictureResponse(PictureBase):
+    id: int
+    picture_url: str
+    created_at: datetime
+    tags: List[int]
+
+    class Config:
+        orm_mode = True
 
 
 class MessageBase(BaseModel):
