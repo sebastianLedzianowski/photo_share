@@ -1,13 +1,14 @@
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 
+from src.database.models import User
 from src.schemas import MessageModel, MessageResponse
 from src.database.db import get_db
 from src.repository import messages as repository_messages
-
+from src.services.auth import auth_service
 
 router = APIRouter(prefix='/messages', tags=["messages"])
 
@@ -15,7 +16,8 @@ router = APIRouter(prefix='/messages', tags=["messages"])
 @router.post('/', response_model=MessageModel)
 async def create_message(
         body: MessageModel,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth_service.get_current_user)
 ):
     """
     Create a new message in the database.
@@ -33,13 +35,15 @@ async def create_message(
     Returns:
     - The created message as a MessageModel instance, including the newly assigned message ID.
     """
+    if body.sender_id != current_user.id and body.receiver_id != current_user.id:
+        raise HTTPException(status_code=400, detail="You can only send messages from or to yourself.")
     return await repository_messages.create_message(body=body, db=db)
 
 
 @router.get('/user/{user_id}', response_model=List[MessageResponse])
 async def get_messages_for_user(
-        user_id: int,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth_service.get_current_user)
 ) -> List[MessageResponse]:
     """
     Retrieve all messages sent by or to a specific user.
@@ -57,5 +61,5 @@ async def get_messages_for_user(
     - A list of MessageResponse models representing all relevant messages. Each MessageResponse
       includes details such as the message ID, sender ID, receiver ID, content, and timestamp.
     """
-    messages = await repository_messages.get_messages_for_user(user_id=user_id, db=db)
+    messages = await repository_messages.get_messages_for_user(user_id=current_user.id, db=db)
     return messages
