@@ -64,7 +64,7 @@ class PictureResponse(PictureBase):
     id: int
     picture_url: str
     created_at: datetime
-    # tags: List[int]
+    tags: List[int]
 
     class Config:
         orm_mode = True

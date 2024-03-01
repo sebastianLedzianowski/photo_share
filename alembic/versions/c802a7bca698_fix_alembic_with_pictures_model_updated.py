@@ -1,8 +1,8 @@
-"""pictures_with_description
+"""Fix alembic with pictures model updated
 
-Revision ID: b4fc1efc84ef
-Revises: c2082ca6ef35
-Create Date: 2024-02-29 20:50:32.961881
+Revision ID: c802a7bca698
+Revises: 1afcf54cc3e8
+Create Date: 2024-03-01 18:20:11.214036
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b4fc1efc84ef'
-down_revision: Union[str, None] = 'c2082ca6ef35'
+revision: str = 'c802a7bca698'
+down_revision: Union[str, None] = '1afcf54cc3e8'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
