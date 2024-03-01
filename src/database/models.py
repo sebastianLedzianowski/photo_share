@@ -32,6 +32,7 @@ class Tag(Base):
 
     pictures = relationship('Picture', secondary='picture_tags_association', back_populates='tags')
 
+
 class Picture(Base):
     """
     SQLAlchemy model representing a picture.
@@ -47,12 +48,16 @@ class Picture(Base):
     __tablename__ = "picture"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    picture_url = Column(String(255), nullable=False)
     rating = Column(Integer, nullable=True)
+    description = Column(String, nullable=True)
+    created_at = Column('created_at', DateTime, default=func.now())
 
+    user_id = Column('user_id', ForeignKey('user.id', ondelete='CASCADE'), default=None)
     user = relationship('User', back_populates='pictures')
     tags = relationship('Tag', secondary='picture_tags_association', back_populates='pictures')
     comments = relationship('Comment', back_populates='picture')
+
 
 class Comment(Base):
     """
