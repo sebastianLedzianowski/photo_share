@@ -15,15 +15,15 @@ get_current_user = Auth.get_current_user
 
 
 router = APIRouter()
-
-
-@router.post("/search/picture", response_model=List[PictureResponse])
+    
+    
+@router.post("/search/pictures", response_model=List[PictureResponse])
 async def search_pictures(
     search_params: PictureSearch,
     rating: Optional[int] = None,
     added_after: Optional[datetime] = None,
     db: Session = Depends(get_db),
-):
+    ):
     """
     Search for pictures based on the given keywords or tags, with optional filters for rating and added date.
     Args:
@@ -57,12 +57,12 @@ async def search_pictures(
     return pydantic_pictures
 
 
-@router.post("/search/user", response_model=List[UserResponse])
+@router.post("/search/users", response_model=List[UserResponse])
 async def search_users(
     search_params: PictureSearch,
     username: Optional[str] = None,
     email: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Search for users based on the given search parameters.
@@ -110,8 +110,8 @@ async def search_users(
     return pydantic_users
 
 
-@router.post("/search/user_by_pictures", response_model=List[UserResponse])
-async def search_users_by_pictures(
+@router.post("/search/users_by_picture", response_model=List[UserResponse])
+async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,
     rating: Optional[int] = None,
