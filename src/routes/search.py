@@ -67,7 +67,7 @@ async def get_current_user(self, token: str = Depends(oauth2_scheme), db: Sessio
         return user
     
     
-@router.post("/search", response_model=List[PictureResponse])
+@router.post("/search/pictures", response_model=List[PictureResponse])
 async def search_pictures(
     search_params: PictureSearch,
     rating: Optional[int] = None,
@@ -109,8 +109,8 @@ async def search_pictures(
     return pydantic_pictures
 
 
-@router.post("/search/user", response_model=List[UserResponse])
-async def search_users_by_pictures(
+@router.post("/search/user_by_picture", response_model=List[UserResponse])
+async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,
     rating: Optional[int] = None,
@@ -162,6 +162,59 @@ async def search_users_by_pictures(
             email=user.user.email,
             avatar=user.user.avatar,
             picture_count=user.picture_count,
+        ) for user in users
+    ]
+
+    return pydantic_users
+
+
+@router.post("/search/user", response_model=List[UserResponse])
+async def search_users(
+    search_params: PictureSearch,
+    username: Optional[str] = None,
+    email: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Search for users based on the given search parameters.
+
+    Args:
+        search_params (PictureSearch): The search parameters for pictures, which include keywords and/or tags.
+        username (Optional[str], optional): The username of the user to search for. Defaults to None.
+        email (Optional[str], optional): The email of the user to search for. Defaults to None.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (User, optional): The currently authenticated user. Defaults to Depends(get_current_active_user).
+
+    Returns:
+        List[UserResponse]: A list of users matching the search criteria.
+
+    Raises:
+        HTTPException: If the user is not a moderator or an administrator.
+    """
+    query = db.query(User)
+
+    if search_params.keywords:
+        query = query.filter(
+            or_(User.username.ilike(f"%{search_params.keywords}%"),
+            User.email.ilike(f"%{search_params.keywords}%")
+        )
+    )
+
+    if username:
+        query = query.filter(User.username.ilike(f"%{username}%"))
+
+    if email:
+        query = query.filter(User.email.ilike(f"%{email}%"))
+
+    users = query.all()
+
+    pydantic_users = [
+        UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            avatar=user.avatar,
+            picture_count=len(user.pictures),
         ) for user in users
     ]
 
