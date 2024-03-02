@@ -117,8 +117,8 @@ class Test_search_users(unittest.TestCase):
         mock_get_db.return_value = self.db
 
         response = client.post("/search/users", json={"keywords": "testuser"})
-        users = [
-            UserResponse(id=1, username="testuser1", email="test1@example.com", avatar
+        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
+
     
 class Test_search_users_by_picture(unittest.TestCase):
     def setUp(self):
