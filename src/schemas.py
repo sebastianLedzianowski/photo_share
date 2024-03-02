@@ -55,20 +55,37 @@ class RequestEmail(BaseModel):
     email: EmailStr
 
 
+
 class PictureBase(BaseModel):
-    rating: Optional[float] = None
-    description: Optional[str] = None
+    rating: Optional[int] | None
+    description: Optional[str] | None
 
 
 class PictureModel(PictureBase):
-    tags: List[int]
+    tags: Optional[List[int]]
+
+
+class PictureDB(BaseModel):
+
+    id: int
+    picture_url: str | None
+    rating: Optional[int] | None
+    description: Optional[str] | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PictureUpdate(BaseModel):
+    description: Optional[str] | None
 
 
 class PictureResponse(PictureBase):
     id: int
-    picture_url: str
+    picture_url: str | None
     created_at: datetime
-    tags: List[int]
+    tags: Optional[List[int]]
 
     class Config:
         orm_mode = True
