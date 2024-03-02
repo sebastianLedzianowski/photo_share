@@ -2,18 +2,18 @@ import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI
 from fastapi_limiter import FastAPILimiter
-from src.routes import users, auth, messages, pictures_oktawian, tags
+from src.routes import users, auth, messages, tags, pictures_oktawian, search
 from src.services.secrets_manager import get_secret
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Define allowed origins for CORS (Cross-Origin Resource Sharing)
+
 origins = [
     "http://localhost:8000"
     ]
 
-# Add CORS middleware to allow requests from the defined origins
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -22,9 +22,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
+app.include_router(search.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 
@@ -52,7 +54,6 @@ async def startup():
 @app.get("/ping")
 def root():
     return {"message": "pong"}
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)
