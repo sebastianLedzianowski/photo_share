@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    <h4 class="text-center my-3">USERS PAGE</h4>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.created_at }}</td>
+                        <td>
+
+                            <a href="/users/{{ user.id }}" class="btn btn-primary">View</a>
+
+                            <form action="/api/users/delete/{{ user.id }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
