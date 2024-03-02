@@ -22,7 +22,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include the routers for the different routes
 app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
@@ -30,12 +29,10 @@ app.include_router(search.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 
-# Get the Redis connection details from the secrets manager
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
 REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
 
-# Initialize FastAPILimiter on application startup
 @app.on_event("startup")
 async def startup():
     """
@@ -50,11 +47,9 @@ async def startup():
     )
     await FastAPILimiter.init(r)
 
-# Add a simple ping endpoint
 @app.get("/ping")
 def root():
     return {"message": "pong"}
 
-# Run the application using uvicorn
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)
