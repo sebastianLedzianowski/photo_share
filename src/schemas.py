@@ -91,6 +91,11 @@ class PictureResponse(PictureBase):
         orm_mode = True
 
 
+class PictureSearch(BaseModel):
+    keywords: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
 class MessageBase(BaseModel):
     sender_id: int
     receiver_id: int
