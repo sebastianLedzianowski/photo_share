@@ -55,6 +55,11 @@ class Test_search_pictures(unittest.TestCase):
     
     
 class Test_search_users(unittest.TestCase):
+    
+    def setUp(self):
+        engine = create_engine("sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(engine)
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     def tearDown(self):
         self.db.close()
@@ -63,6 +68,7 @@ class Test_search_users(unittest.TestCase):
     def test_search_users(self, mock_get_db, client):
         user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
         user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
+        self.db = self.SessionLocal()
         self.db.add(user1)
         self.db.add(user2)
         self.db.commit()
@@ -99,7 +105,20 @@ class Test_search_users(unittest.TestCase):
         users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
         assert response.status_code == 200
         assert response.json() == users
-    
+
+    @patch("src.routes.search.get_db", new_callable=MagicMock)
+    def test_search_users_by_keywords(self, mock_get_db, client):
+        user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
+        user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
+        self.db = self.SessionLocal()
+        self.db.add(user1)
+        self.db.add(user2)
+        self.db.commit()
+        mock_get_db.return_value = self.db
+
+        response = client.post("/search/users", json={"keywords": "testuser"})
+        users = [
+            UserResponse(id=1, username="testuser1", email="test1@example.com", avatar
     
 class Test_search_users_by_picture(unittest.TestCase):
     def setUp(self):
