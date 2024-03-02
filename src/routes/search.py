@@ -1,58 +1,43 @@
-from datetime import datetime
-from fastapi import FastAPI
-from src.services.search import search_pictures, search_users, search_users_with_photos, search_comments
-from src.database.models import User, Picture
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends
 from typing import List
-from src.services.auth import Auth
+
+from src.database.models import Picture, Tag
+from src.database.db import get_db
+from src.schemas import PictureResponse, PictureSearch
 
 
-app = FastAPI()
+router = APIRouter()
 
 
-@app.get("/search/pictures")
-async def search_pictures_endpoint(query: str, tags: List[str] = None, rating: int = None, date_added: datetime = None):
-    pictures = search_pictures(keywords_or_tags=query.split())
-    if tags:
-        pictures = [picture for picture in pictures if any(tag.name in tags for tag in picture.tags)]
-    if rating is not None:
-        pictures = [picture for picture in pictures if picture.rating == rating]
-    if date_added is not None:
-        start_date = datetime.combine(date_added, datetime.min.time())
-        end_date = datetime.combine(date_added, datetime.max.time())
-        pictures = [picture for picture in pictures if start_date <= picture.created_at <= end_date]
-    return pictures
+@router.post("/search", response_model=List[PictureResponse])
+async def search_pictures(search_params: PictureSearch, db: Session = Depends(get_db)):
+    """
+    Search for pictures based on the given keywords or tags.
 
+    Args:
+        search_params (PictureSearch): The search parameters, which include keywords and/or tags.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
 
-@app.get("/search/users")
-async def search_users_endpoint(query: str, tags: List[str] = None, rating: int = None, date_added: datetime = None):
-    users = search_users(keywords=query.split())
-    if tags:
-        users = [user for user in users if any(tag.name in tags for tag in user.tags)]
-    if rating is not None:
-        users = [user for user in users if user.rating == rating]
-    if date_added is not None:
-        start_date = datetime.combine(date_added, datetime.min.time())
-        end_date = datetime.combine(date_added, datetime.max.time())
-        users = [user for user in users if start_date <= user.created_at <= end_date]
-    return users
+    Returns:
+        List[PictureResponse]: A list of pictures matching the search criteria.
+    """
+    query = db.query(Picture)
 
+    if search_params.keywords:
+        # Search by keywords in the picture description
+        query = query.filter(Picture.description.ilike(f"%{search_params.keywords}%"))
 
-get_current_user = Auth.get_current_user
+    if search_params.tags:
+        # Search by tags
+        tag_query = db.query(Tag)
+        tag_ids = [tag.id for tag in tag_query.filter(Tag.name.in_(search_params.tags)).all()]
+        query = query.join(Picture.tags).filter(Tag.id.in_(tag_ids))
 
+    pictures = query.all()
 
-@app.get("/search/users/photos")
-async def search_users_with_photos_endpoint(query: str = '', picture_ids: List[int] = None, current_user: User = get_current_user):
-    users = search_users(keywords=query.split())
-    if picture_ids:
-        pictures = Picture.query.filter(Picture.id.in_(picture_ids)).all()
-        user_ids = {picture.user_id for picture in pictures}
-        users = [user for user in users if user.id in user_ids]
-    return users
+    # Convert the SQLAlchemy models to Pydantic models
+    pydantic_pictures = [picture.to_pydantic() for picture in pictures]
 
-
-@app.get("/search/comments")
-async def search_comments_endpoint(query: str, tag_names: List[str] = None):
-    comments = search_comments(keywords=query.split())
-    if tag_names:
-        comments = search_comments(tag_names)
-    return comments
+    return pydantic_pictures
