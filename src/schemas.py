@@ -23,7 +23,7 @@ class UserDb(BaseModel):
     created_at: datetime
     avatar: str | None
 
-    class ConfigDict:
+    class Config:
         from_attributes = True
 
 
@@ -33,6 +33,10 @@ class UserResponse(BaseModel):
     """
     user: UserDb
     detail: str = "User successfully created"
+
+
+class UserUpdateName(BaseModel):
+    username: str = Field(min_length=5, max_length=16)
 
 
 class TokenModel(BaseModel):
