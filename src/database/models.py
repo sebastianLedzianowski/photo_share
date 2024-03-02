@@ -49,7 +49,6 @@ class Picture(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     picture_url = Column(String(255), nullable=False)
-    picture_edited_url = Column(String(255), nullable=True)
     rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
