@@ -81,7 +81,7 @@ def test_delete_user(client, user, session):
     user_id = 1  # Assuming this is the ID of the user created above
 
     # Perform the DELETE request
-    response = client.delete(f"/api/users/delete/{user_id}")
+    response = client.post(f"/api/users/delete/{user_id}")
 
     # Validate the response
     assert response.status_code == 204
