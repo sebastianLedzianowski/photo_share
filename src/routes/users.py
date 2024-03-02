@@ -108,7 +108,7 @@ async def update_user_name_route(user_id: int,
     return updated_user
 
 
-@router.delete('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.post('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_name_route(user_id: int,
                                  db: Session = Depends(get_db)
                                  ):
