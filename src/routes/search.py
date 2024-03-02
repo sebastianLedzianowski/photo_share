@@ -14,10 +14,10 @@ from src.services.auth import Auth
 get_current_user = Auth.get_current_user
 
 
-router = APIRouter()
+router = APIRouter(prefix='/search', tags=["search"])
     
     
-@router.post("/search/pictures", response_model=List[PictureResponse])
+@router.post("/pictures", response_model=List[PictureResponse])
 async def search_pictures(
     search_params: PictureSearch,
     rating: Optional[int] = None,
@@ -57,7 +57,7 @@ async def search_pictures(
     return pydantic_pictures
 
 
-@router.post("/search/users", response_model=List[UserResponse])
+@router.post("/users", response_model=List[UserResponse])
 async def search_users(
     search_params: PictureSearch,
     username: Optional[str] = None,
@@ -110,7 +110,7 @@ async def search_users(
     return pydantic_users
 
 
-@router.post("/search/users_by_picture", response_model=List[UserResponse])
+@router.post("/users_by_picture", response_model=List[UserResponse])
 async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,
