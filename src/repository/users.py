@@ -1,9 +1,12 @@
-from typing import Type
+from typing import Type, List
 
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from src.database.models import User
-from src.schemas import UserModel
+from src.schemas import UserModel, UserDb
 from src.services.auth import auth_service
 
 
@@ -19,6 +22,7 @@ async def get_user_by_email(email: str, db: Session) -> Type[User]:
         Type[User]: The user object or None if not found.
     """
     return db.query(User).filter(User.email == email).first()
+
 
 async def create_user(body: UserModel, db: Session) -> User:
     """
@@ -37,6 +41,108 @@ async def create_user(body: UserModel, db: Session) -> User:
     db.refresh(new_user)
     return new_user
 
+
+async def get_user_by_id(user_id: int,
+                         db: Session
+                         ) -> UserDb:
+
+    """
+    Asynchronously retrieves a user by their ID from the database.
+
+    This function queries the database for a user with the specified `user_id`. If the user exists,
+    it returns a Pydantic model (`UserDb`) representation of the user. If the user does not exist,
+    it raises an HTTPException with a 400 status code.
+
+    Args:
+        user_id (int): The unique identifier of the user to retrieve.
+        db (Session): The database session used to execute the query.
+
+    Returns:
+        UserDb: A Pydantic model representing the retrieved user's data.
+
+    Raises:
+        HTTPException: A 400 error if the user with the specified ID does not exist.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    return UserDb.from_orm(user)
+
+
+async def list_all_users(db: Session) -> List[User]:
+    """
+    Asynchronously retrieves a list of all users from the database.
+
+    This function queries the database for all users and returns a list of SQLAlchemy `User` model
+    instances representing all users in the database.
+
+    Args:
+        db (Session): The database session used to execute the query.
+
+    Returns:
+        List[User]: A list of all user instances in the database.
+    """
+    users = db.query(User).all()
+    return users
+
+
+async def update_user_name(user_id: int,
+                           new_name: str,
+                           db: Session
+                           ) -> UserDb:
+    """
+    Asynchronously updates the name of a specific user identified by their user ID.
+
+    This function searches for a user with the specified `user_id` and updates their username to
+    `new_name`. If the user is found and the name is updated, it returns a Pydantic model (`UserDb`)
+    representation of the updated user. If no user is found, it raises an HTTPException with a 404 status code.
+
+    Args:
+        user_id (int): The unique identifier of the user whose name is to be updated.
+        new_name (str): The new name to assign to the user.
+        db (Session): The database session used to execute the update operation.
+
+    Returns:
+        UserDb: A Pydantic model representing the updated user's data.
+
+    Raises:
+        HTTPException: A 404 error if no user with the specified ID exists.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.username = new_name
+    db.commit()
+    db.refresh(user)
+    return UserDb.from_orm(user)
+
+
+async def delete_user(user_id: int,
+                      db: Session
+                      ) -> None:
+    """
+    Asynchronously deletes a specific user identified by their user ID from the database.
+
+    This function searches for a user with the specified `user_id` and deletes them from the database.
+    If no user is found with the specified ID, it raises an HTTPException with a 404 status code.
+
+    Args:
+        user_id (int): The unique identifier of the user to delete.
+        db (Session): The database session used to execute the deletion.
+
+    Returns:
+        None: Indicates successful deletion.
+
+    Raises:
+        HTTPException: A 404 error if no user with the specified ID exists.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+
+
 async def update_token(user: User, token: str | None, db: Session) -> None:
     """
     Update the refresh token for a user.
@@ -49,6 +155,7 @@ async def update_token(user: User, token: str | None, db: Session) -> None:
     user.refresh_token = token
     db.commit()
 
+
 async def confirmed_email(email: str, db: Session) -> None:
     """
     Confirm the email address for a user.
@@ -60,6 +167,7 @@ async def confirmed_email(email: str, db: Session) -> None:
     user = await get_user_by_email(email, db)
     user.confirmed = True
     db.commit()
+
 
 async def update_avatar(email, url: str, db: Session) -> User:
     """
