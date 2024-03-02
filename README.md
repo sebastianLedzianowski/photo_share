@@ -65,14 +65,13 @@ This project should be licensed under the MIT License.
 
 ```
 photo_share
-├─ .gitignore
 ├─ alembic
 │  ├─ env.py
 │  ├─ README
 │  ├─ script.py.mako
 │  └─ versions
-│     ├─ 0e447b4659f7_update_bool_level.py
-│     └─ d4b9334092ad_start_project.py
+│     ├─ 1afcf54cc3e8_init.py
+│     └─ c802a7bca698_fix_alembic_with_pictures_model_updated.py
 ├─ alembic.ini
 ├─ main.py
 ├─ poetry.lock
@@ -83,25 +82,51 @@ photo_share
 │  │  ├─ config.py
 │  │  └─ __init__.py
 │  ├─ database
-│  │  ├─ db.py
 │  │  ├─ models.py
 │  │  └─ __init__.py
 │  ├─ repository
+│  │  ├─ comments.py
+│  │  ├─ messages.py
+│  │  ├─ pictures.py
+│  │  ├─ pictures_oktawian.py
+│  │  ├─ tags.py
 │  │  ├─ users.py
 │  │  └─ __init__.py
 │  ├─ routes
 │  │  ├─ auth.py
+│  │  ├─ comments.py
+│  │  ├─ messages.py
+│  │  ├─ pictures_oktawian.py
+│  │  ├─ search.py
+│  │  ├─ tags.py
 │  │  ├─ users.py
 │  │  └─ __init__.py
 │  ├─ schemas.py
 │  ├─ services
 │  │  ├─ auth.py
 │  │  ├─ email.py
+│  │  ├─ secrets_manager.py
 │  │  ├─ templates
-│  │  │  ├─ email_template.html
+│  │  │  ├─ email_verification_template.html
+│  │  │  ├─ password_reset_template.html
 │  │  │  └─ __init__.py
 │  │  └─ __init__.py
+│  ├─ static
+│  │  ├─ modern-normalize-min.css
+│  │  └─ styles.css
+│  ├─ tests
+│  │  ├─ conftest.py
+│  │  ├─ test_repository_tags.py
+│  │  ├─ test_routes_auth.py
+│  │  ├─ test_routes_messages.py
+│  │  ├─ test_routes_pictures_oktawian.py
+│  │  ├─ test_routes_search.py
+│  │  ├─ test_routes_users.py
+│  │  ├─ test_unit_repository_pictures_oktawian.py
+│  │  ├─ test_unit_repository_user.py
+│  │  └─ __init__.py
 │  └─ __init__.py
-└─ tests
+└─ templates
+   ├─ reset_password.html
    └─ __init__.py
 ```
