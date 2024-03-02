@@ -8,12 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Define allowed origins for CORS (Cross-Origin Resource Sharing)
+
 origins = [
     "http://localhost:8000"
     ]
 
-# Add CORS middleware to allow requests from the defined origins
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -22,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
@@ -29,9 +30,11 @@ app.include_router(search.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 
+
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
 REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
+
 
 @app.on_event("startup")
 async def startup():
@@ -46,6 +49,7 @@ async def startup():
         decode_responses=True
     )
     await FastAPILimiter.init(r)
+
 
 @app.get("/ping")
 def root():
