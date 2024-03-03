@@ -14,16 +14,18 @@ from src.services.auth import Auth
 get_current_user = Auth.get_current_user
 
 
-router = APIRouter(prefix='/search', tags=["search"])
+router = APIRouter()
     
     
-@router.post("/pictures", response_model=List[PictureResponse])
+@router.post("/pictures/search", tags=["pictures"], response_model=List[PictureResponse])
 async def search_pictures(
     search_params: PictureSearch,
     rating: Optional[int] = None,
     added_after: Optional[datetime] = None,
+    sort_by: Optional[str] = "created_at",
+    sort_order: Optional[str] = "desc",
     db: Session = Depends(get_db),
-    ):
+):
     """
     Search for pictures based on the given keywords or tags, with optional filters for rating and added date.
     Args:
@@ -31,8 +33,10 @@ async def search_pictures(
         rating (Optional[int], optional): The minimum rating for the pictures. Defaults to None.
         added_after (Optional[datetime], optional): The earliest added date for the pictures. Defaults to None.
         db (Session, optional): The database session. Defaults to Depends(get_db).
+        sort_by (Optional[str]): The field to sort by. Defaults to "created_at".
+        sort_order (Optional[str]): The sort order. Defaults to "desc".
     Returns:
-        List[PictureResponse]: A list of pictures matching the search criteria.
+        List[PictureResponse]: A list of pictures matching the search criteria, sorted by the specified field.
     """
     query = db.query(Picture)
 
@@ -50,14 +54,20 @@ async def search_pictures(
     if added_after is not None:
         query = query.filter(Picture.created_at >= added_after)
 
-    pictures = query.all()
+    if sort_by not in ["rating", "created_at"]:
+        sort_by = "created_at"
+
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
+
+    pictures = query.order_by(getattr(Picture, sort_by).desc() if sort_order == "desc" else getattr(Picture, sort_by)).all()
 
     pydantic_pictures = [picture.to_pydantic() for picture in pictures]
 
     return pydantic_pictures
 
 
-@router.post("/users", response_model=List[UserResponse])
+@router.post("/users/search", tags=["users"], response_model=List[UserResponse])
 async def search_users(
     search_params: PictureSearch,
     username: Optional[str] = None,
@@ -110,7 +120,7 @@ async def search_users(
     return pydantic_users
 
 
-@router.post("/users_by_picture", response_model=List[UserResponse])
+@router.post("/users_by_picture/search", tags=["users"], response_model=List[UserResponse])
 async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,
@@ -126,7 +136,7 @@ async def search_users_by_picture(
         rating (Optional[int], optional): The minimum rating for the pictures. Defaults to None.
         added_after (Optional[datetime], optional): The earliest added date for the pictures. Defaults to None.
         db (Session, optional): The database session. Defaults to Depends(get_db).
-        current_user (User, optional): The currently authenticated user. Defaults to Depends(get_current_active_user).
+        current_user (User, optional): The currently authenticated user. Defaults to Depends(get_current_user).
     Returns:
         List[UserResponse]: A list of users matching the search criteria.
     Raises:
