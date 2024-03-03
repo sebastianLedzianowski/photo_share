@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from src.database.models import User
 from src.services.email import send_verification_email, send_reset_email
 from src.database.db import get_db
-from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail
+from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail, ResetPasswordModel, ChangePasswordModel
 from src.repository import users as repository_users
 from src.services.auth import auth_service
 
@@ -203,21 +203,15 @@ async def reset_password(request: Request, token: str = None, error: str = None)
 
 @router.post('/reset_password/{token}', response_model=None)
 async def reset_password_post(token: str,
-                              new_password: str = Form(...),
+                              password_data: ResetPasswordModel = Form(...),
                               db: Session = Depends(get_db)) -> JSONResponse | dict:
     """
     Handle the submission of the password reset form.
-
-    Args:
-        token (str): Reset password token.
-        new_password (str): New password.
-        db (Session): SQLAlchemy database session.
-
-    Returns:
-        dict: Response message.
     """
     email = await auth_service.get_email_from_token(token)
     user = await repository_users.get_user_by_email(email, db)
+
+    new_password = password_data.new_password
 
     if user is None:
         return JSONResponse(status_code=400, content={"detail": "Verification error."})
