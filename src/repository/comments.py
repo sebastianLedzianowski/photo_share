@@ -1,11 +1,11 @@
 from datetime import datetime
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from src.database.models import Comment, User, Picture
-from src.schemas import CommentModel
+from src.database.models import Comment, User
+from src.schemas import CommentModel, PictureDB
 
 
-async def create_comment(body: CommentModel, picture: Picture, user: User, db: Session) -> Comment:
+async def create_comment(body: CommentModel, picture: PictureDB, user: User, db: Session) -> Comment:
     comment = Comment(user_id=user.id,
                       picture_id=picture.id,
                       content=body.content,
