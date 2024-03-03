@@ -31,7 +31,7 @@ async def update_comment(comment_id: int, body: CommentModel, user: User, db: Se
     return comment
 
 
-async def remove_comment(comment_id: int, user: User, db: Session) -> Comment | None:
+async def remove_comment(comment_id: int, user: User, db: Session) -> None | dict:
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
     if user.admin or user.moderator:
         if comment:
@@ -39,5 +39,5 @@ async def remove_comment(comment_id: int, user: User, db: Session) -> Comment | 
             db.commit()
         return comment
     else:
-        return {"message" : "You can't delete the comment."}
+        return {"message": "You can't delete the comment."}
 
