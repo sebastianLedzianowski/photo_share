@@ -4,20 +4,14 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi_limiter import FastAPILimiter
-from src.routes import users, auth, messages, pictures_oktawian, tags, users_role
-
-from src.routes import users, auth, messages, pictures_oktawian, comments
-
-from src.routes import users, auth, messages, pictures_oktawian, tags, search
 from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 
+from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments
 from src.database.db import get_db
 from src.database.models import User
-from src.routes import users, auth, messages, pictures_oktawian, tags
-
 from src.services.secrets_manager import get_secret
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
