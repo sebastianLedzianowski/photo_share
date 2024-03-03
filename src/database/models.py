@@ -83,8 +83,8 @@ class Comment(Base):
     updated_at = Column(DateTime)
 
     likes = relationship('CommentLike', back_populates='comment')
-    picture = relationship('Picture', back_populates='comment')
-    user = relationship('User', back_populates='comment')
+    picture = relationship('Picture', back_populates='comments')
+    user = relationship('User', back_populates='comments')
 
 class CommentLike(Base):
     """
