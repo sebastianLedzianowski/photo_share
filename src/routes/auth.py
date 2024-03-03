@@ -183,7 +183,7 @@ async def request_password_reset(body: RequestEmail,
 
 
 @router.get("/reset_password/{token}", response_class=HTMLResponse)
-async def reset_password(request: Request, token: str = None, error: str = None):
+async def reset_password(request: Request, token: str, error: str = None):
     """
     Display the password reset form.
 
@@ -203,7 +203,7 @@ async def reset_password(request: Request, token: str = None, error: str = None)
 
 @router.post('/reset_password/{token}', response_model=None)
 async def reset_password_post(token: str,
-                              password_data: ResetPasswordModel = Form(...),
+                              password_data: ResetPasswordModel,
                               db: Session = Depends(get_db)) -> JSONResponse | dict:
     """
     Handle the submission of the password reset form.
