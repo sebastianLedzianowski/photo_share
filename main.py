@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments
+from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments, users_role
 from src.database.db import get_db
 from src.database.models import User
 from src.services.secrets_manager import get_secret
