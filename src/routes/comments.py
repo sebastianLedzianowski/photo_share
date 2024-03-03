@@ -24,7 +24,9 @@ async def read_comment(
     return comment
 
 
-@router.post("/", response_model=CommentModel, dependencies=[Depends(RateLimiter(times=1, seconds=5))], status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=CommentModel,
+             dependencies=[Depends(RateLimiter(times=1, seconds=5))],
+             status_code=status.HTTP_201_CREATED)
 async def create_comment(
         body: CommentModel,
         current_picture: Picture,
