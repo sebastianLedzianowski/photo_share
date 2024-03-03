@@ -227,25 +227,17 @@ async def reset_password_post(token: str,
 
 
 @router.post('/change_password')
-async def change_password(current_password: str,
-                          new_password: str,
-                          confirm_password: str,
+async def change_password(change_password_data: ChangePasswordModel,
                           db: Session = Depends(get_db),
                           current_user: User = Depends(auth_service.get_current_user)
                           ) -> JSONResponse:
     """
     Change the password for the current user.
 
-    Args:
-        current_password (str): Current password.
-        new_password (str): New password.
-        confirm_password (str): New password reaped.
-        db (Session): SQLAlchemy database session.
-        current_user (User): Current authenticated user.
-
-    Returns:
-        Union[JSONResponse, dict]: Response message.
     """
+    current_password = change_password_data.current_password
+    new_password = change_password_data.new_password
+    confirm_password = change_password_data.confirm_password
 
     if not auth_service.verify_password(current_password, current_user.password):
         return JSONResponse(status_code=401,
@@ -257,3 +249,4 @@ async def change_password(current_password: str,
     await auth_service.upgrade_password(current_user, new_password, db)
     return JSONResponse(status_code=200,
                         content={"message": "Password changed successfully."})
+
