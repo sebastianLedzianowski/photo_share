@@ -23,7 +23,7 @@ class UserDb(BaseModel):
     created_at: datetime
     avatar: str | None
 
-    class ConfigDict:
+    class Config:
         from_attributes = True
 
 
@@ -33,6 +33,10 @@ class UserResponse(BaseModel):
     """
     user: UserDb
     detail: str = "User successfully created"
+
+
+class UserUpdateName(BaseModel):
+    username: str = Field(min_length=5, max_length=16)
 
 
 class TokenModel(BaseModel):
@@ -51,23 +55,45 @@ class RequestEmail(BaseModel):
     email: EmailStr
 
 
+
 class PictureBase(BaseModel):
-    rating: Optional[float] = None
-    description: Optional[str] = None
+    rating: Optional[int] | None
+    description: Optional[str] | None
 
 
 class PictureModel(PictureBase):
-    tags: List[int]
+    tags: Optional[List[int]]
+
+
+class PictureDB(BaseModel):
+
+    id: int
+    picture_url: str | None
+    rating: Optional[int] | None
+    description: Optional[str] | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PictureUpdate(BaseModel):
+    description: Optional[str] | None
 
 
 class PictureResponse(PictureBase):
     id: int
-    picture_url: str
+    picture_url: str | None
     created_at: datetime
-    tags: List[int]
+    tags: Optional[List[int]]
 
     class Config:
         orm_mode = True
+
+
+class PictureSearch(BaseModel):
+    keywords: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 class MessageBase(BaseModel):
@@ -96,6 +122,7 @@ class MessageSend(BaseModel):
     content: str
 
 
+
 class CommentModel(BaseModel):
     content: str = Field(min_length=1, max_length=300)
 
@@ -109,3 +136,21 @@ class CommentResponse(CommentModel):
 
     class Config:
         orm_mode = True
+
+        
+class TagModel(BaseModel):
+    """
+    Schema for tag input during tag creation.
+    """
+    name: str
+
+
+class ChangePasswordModel(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
+class ResetPasswordModel(BaseModel):
+    new_password: str
+    confirm_password: str

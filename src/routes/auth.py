@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from src.database.models import User
 from src.services.email import send_verification_email, send_reset_email
 from src.database.db import get_db
-from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail
+from src.schemas import UserModel, UserResponse, TokenModel, RequestEmail, ResetPasswordModel, ChangePasswordModel
 from src.repository import users as repository_users
 from src.services.auth import auth_service
 
@@ -183,7 +183,7 @@ async def request_password_reset(body: RequestEmail,
 
 
 @router.get("/reset_password/{token}", response_class=HTMLResponse)
-async def reset_password(request: Request, token: str = None, error: str = None):
+async def reset_password(request: Request, token: str, error: str = None):
     """
     Display the password reset form.
 
@@ -203,21 +203,15 @@ async def reset_password(request: Request, token: str = None, error: str = None)
 
 @router.post('/reset_password/{token}', response_model=None)
 async def reset_password_post(token: str,
-                              new_password: str = Form(...),
+                              password_data: ResetPasswordModel,
                               db: Session = Depends(get_db)) -> JSONResponse | dict:
     """
     Handle the submission of the password reset form.
-
-    Args:
-        token (str): Reset password token.
-        new_password (str): New password.
-        db (Session): SQLAlchemy database session.
-
-    Returns:
-        dict: Response message.
     """
     email = await auth_service.get_email_from_token(token)
     user = await repository_users.get_user_by_email(email, db)
+
+    new_password = password_data.new_password
 
     if user is None:
         return JSONResponse(status_code=400, content={"detail": "Verification error."})
@@ -227,25 +221,17 @@ async def reset_password_post(token: str,
 
 
 @router.post('/change_password')
-async def change_password(current_password: str,
-                          new_password: str,
-                          confirm_password: str,
+async def change_password(change_password_data: ChangePasswordModel,
                           db: Session = Depends(get_db),
                           current_user: User = Depends(auth_service.get_current_user)
                           ) -> JSONResponse:
     """
     Change the password for the current user.
 
-    Args:
-        current_password (str): Current password.
-        new_password (str): New password.
-        confirm_password (str): New password reaped.
-        db (Session): SQLAlchemy database session.
-        current_user (User): Current authenticated user.
-
-    Returns:
-        Union[JSONResponse, dict]: Response message.
     """
+    current_password = change_password_data.current_password
+    new_password = change_password_data.new_password
+    confirm_password = change_password_data.confirm_password
 
     if not auth_service.verify_password(current_password, current_user.password):
         return JSONResponse(status_code=401,
@@ -257,3 +243,4 @@ async def change_password(current_password: str,
     await auth_service.upgrade_password(current_user, new_password, db)
     return JSONResponse(status_code=200,
                         content={"message": "Password changed successfully."})
+
