@@ -14,10 +14,10 @@ from src.services.auth import Auth
 get_current_user = Auth.get_current_user
 
 
-router = APIRouter(prefix='/search', tags=["search"])
+router = APIRouter()
     
     
-@router.post("/pictures", response_model=List[PictureResponse])
+@router.post("/pictures/search", tags=["pictures"], response_model=List[PictureResponse])
 async def search_pictures(
     search_params: PictureSearch,
     rating: Optional[int] = None,
@@ -57,7 +57,7 @@ async def search_pictures(
     return pydantic_pictures
 
 
-@router.post("/users", response_model=List[UserResponse])
+@router.post("/users/search", tags=["users"], response_model=List[UserResponse])
 async def search_users(
     search_params: PictureSearch,
     username: Optional[str] = None,
@@ -110,7 +110,7 @@ async def search_users(
     return pydantic_users
 
 
-@router.post("/users_by_picture", response_model=List[UserResponse])
+@router.post("/users_by_picture/search", tags=["users"], response_model=List[UserResponse])
 async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,
@@ -126,7 +126,7 @@ async def search_users_by_picture(
         rating (Optional[int], optional): The minimum rating for the pictures. Defaults to None.
         added_after (Optional[datetime], optional): The earliest added date for the pictures. Defaults to None.
         db (Session, optional): The database session. Defaults to Depends(get_db).
-        current_user (User, optional): The currently authenticated user. Defaults to Depends(get_current_active_user).
+        current_user (User, optional): The currently authenticated user. Defaults to Depends(get_current_user).
     Returns:
         List[UserResponse]: A list of users matching the search criteria.
     Raises:
