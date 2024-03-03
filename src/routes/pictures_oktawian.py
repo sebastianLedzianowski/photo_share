@@ -83,7 +83,7 @@ async def update_picture(
         )
 
         picture = cloudinary.uploader.upload(picture.file)
-        url = cloudinary.CloudinaryImage(f'picture/{current_user.email}').build_url(crop='fill',version=picture.get('version'))
+        url = cloudinary.CloudinaryImage(f'picture/{current_user.email}').build_url(crop='fill', version=picture.get('version'))
 
         picture_url = await repository_pictures_oktawian.update_picture(picture_id=picture_id, url=url, user=current_user, db=db)
         if picture_url is None:

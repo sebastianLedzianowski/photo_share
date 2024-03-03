@@ -4,6 +4,9 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi_limiter import FastAPILimiter
+
+from src.routes import users, auth, messages, pictures_oktawian, comments
+
 from src.routes import users, auth, messages, pictures_oktawian, tags, search
 from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
@@ -11,6 +14,7 @@ from starlette.templating import Jinja2Templates
 from src.database.db import get_db
 from src.database.models import User
 from src.routes import users, auth, messages, pictures_oktawian, tags
+
 from src.services.secrets_manager import get_secret
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,6 +41,7 @@ app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(search.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
+app.include_router(comments.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 
 

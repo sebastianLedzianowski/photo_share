@@ -75,14 +75,16 @@ class Comment(Base):
     """
     __tablename__ = "comment"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user.id'))
     picture_id = Column(Integer, ForeignKey('picture.id'))
     content = Column(String(255), nullable=False)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 
     likes = relationship('CommentLike', back_populates='comment')
-    picture = relationship('Picture', back_populates='comments')
-    user = relationship('User', back_populates='comments')
+    picture = relationship('Picture', back_populates='comment')
+    user = relationship('User', back_populates='comment')
 
 class CommentLike(Base):
     """
