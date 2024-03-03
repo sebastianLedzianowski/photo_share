@@ -127,3 +127,14 @@ class TagModel(BaseModel):
     Schema for tag input during tag creation.
     """
     name: str
+
+
+class ChangePasswordModel(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
+class ResetPasswordModel(BaseModel):
+    new_password: str
+    confirm_password: str
