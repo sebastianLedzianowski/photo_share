@@ -38,6 +38,9 @@ app.include_router(search.router, prefix='/api')
 app.include_router(pictures_oktawian.router, prefix='/api')
 app.include_router(comments.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
+app.include_router(users_role.router, prefix = "/api" )
+
+
 
 
 REDIS_HOST = get_secret("REDIS_HOST")

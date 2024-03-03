@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Callable
 
 import redis as redis
 from jose import JWTError, jwt
@@ -190,7 +190,44 @@ class Auth:
         to_encode.update({"iat": datetime.utcnow(), "exp": expire})
         token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return token
+    
+    def admin_required(self, func: Callable):
+        async def wrapper(current_user: User = Depends(self.get_current_user)):
+            """
+        Decorator to restrict access to admin users only.
 
+        Parameters:
+            func (Callable): The function to be decorated.
+
+        Returns:
+            Callable: Decorated function with access restriction to admin users.
+            """
+            if not current_user.admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not an admin",
+                )
+            return await func(current_user=current_user)
+        return wrapper
+    
+    def moderator_required(self, func: Callable):
+        async def wrapper(current_user: User = Depends(self.get_current_user)):
+            """
+            Wrapper function to check if the current user is an admin.
+
+            Parameters:
+                current_user (User, optional): The current user. Defaults to Depends(self.get_current_user).
+
+            Returns:
+                Any: Result of the decorated function.
+            """
+            if not current_user.moderator:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not a moderator",
+                )
+            return await func(current_user=current_user)
+        return wrapper
 
     async def get_email_from_token(self, token: str) -> str:
         """
@@ -213,6 +250,7 @@ class Auth:
             print(e)
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Invalid token for email.")
+        
 
 
 auth_service = Auth()
