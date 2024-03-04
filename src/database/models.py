@@ -46,12 +46,18 @@ class Picture(Base):
         user (User): Relationship with the User model representing the uploader of the picture.
         tags (list[Tag]): Relationship with the Tag model representing tags associated with the picture.
         comments (list[Comment]): Relationship with the Comment model representing comments on the picture.
+        picture_url (str): URL of the original picture.
+        picture_edited_url (str): URL of the edited picture (nullable).
+        picture_name (str): Name of the picture.
+        description (str): Description of the picture (nullable).
+        created_at (DateTime): Timestamp indicating when the picture was created.
     """
     __tablename__ = "picture"
 
     id = Column(Integer, primary_key=True, index=True)
     picture_url = Column(String(255), nullable=False)
     picture_edited_url = Column(String(255), nullable=True)
+    picture_name = Column(String(255), nullable=True)
     rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
