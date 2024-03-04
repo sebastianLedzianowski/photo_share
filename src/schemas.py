@@ -132,7 +132,7 @@ class CommentResponse(CommentModel):
     user_id: int
     picture_id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None
 
     class Config:
         orm_mode = True
