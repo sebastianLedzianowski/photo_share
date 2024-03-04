@@ -55,7 +55,6 @@ class RequestEmail(BaseModel):
     email: EmailStr
 
 
-
 class PictureBase(BaseModel):
     rating: Optional[int] | None
     description: Optional[str] | None
@@ -120,7 +119,6 @@ class MessageResponse(MessageBase):
 class MessageSend(BaseModel):
     receiver_id: int
     content: str
-
 
 
 class CommentModel(BaseModel):
