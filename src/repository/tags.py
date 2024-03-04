@@ -2,7 +2,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from src.database.models import Tag
 
-def filter_existing_tags(db: Session, tags: List[str]) -> List[Tag]:
+async def filter_existing_tags(db: Session, tags: List[str]) -> List[Tag]:
     """
     Filter existing tags from the database based on a list of tag names.
 
@@ -19,7 +19,7 @@ def filter_existing_tags(db: Session, tags: List[str]) -> List[Tag]:
     existing_tags = db.query(Tag).filter(Tag.name.in_(tags)).all()
     return existing_tags
 
-def add_new_tags_to_db(db: Session, tags: List[str]) -> List[Tag]:
+async def add_new_tags_to_db(db: Session, tags: List[str]) -> List[Tag]:
     """
     Add new tags to the database.
 
@@ -47,7 +47,7 @@ def add_new_tags_to_db(db: Session, tags: List[str]) -> List[Tag]:
     elif not all(isinstance(item, str) for item in tags):
         raise TypeError("Tags must be provided as a list of strings.")
 
-    existing_tags = filter_existing_tags(db, tags)
+    existing_tags = await filter_existing_tags(db, tags)
     tag_name_to_id = {tag.name: tag.id for tag in existing_tags}
     new_tags = [Tag(name=tag_name) for tag_name in tags if tag_name not in tag_name_to_id]
     db.add_all(new_tags)

@@ -39,7 +39,7 @@ Python, Poetry, Postgres, SQLAlchemy, Alembic, Redis
    `pip install -r requirements.txt`
 3. Set up environment variables for database connection, Cloudinary API, and JWT secret key.
 4. Run the application:
-   `uvicorn main:app --reload`
+   `uvicorn main:app --host localhost --port 8000 --reload`
 
 ## Usage
 
@@ -71,8 +71,7 @@ photo_share
 │  ├─ README
 │  ├─ script.py.mako
 │  └─ versions
-│     ├─ 0e447b4659f7_update_bool_level.py
-│     └─ d4b9334092ad_start_project.py
+│     └─ this is a long story, mate!
 ├─ alembic.ini
 ├─ main.py
 ├─ poetry.lock
@@ -87,21 +86,48 @@ photo_share
 │  │  ├─ models.py
 │  │  └─ __init__.py
 │  ├─ repository
+│  │  ├─ comments.py
+│  │  ├─ messages.py
+│  │  ├─ pictures.py
+│  │  ├─ pictures_oktawian.py
+│  │  ├─ tags.py
 │  │  ├─ users.py
 │  │  └─ __init__.py
 │  ├─ routes
 │  │  ├─ auth.py
+│  │  ├─ comments.py
+│  │  ├─ messages.py
+│  │  ├─ pictures_oktawian.py
+│  │  ├─ search.py
+│  │  ├─ tags.py
 │  │  ├─ users.py
 │  │  └─ __init__.py
 │  ├─ schemas.py
 │  ├─ services
 │  │  ├─ auth.py
 │  │  ├─ email.py
+│  │  ├─ secrets_manager.py
 │  │  ├─ templates
-│  │  │  ├─ email_template.html
+│  │  │  ├─ email_verification_template.html
+│  │  │  ├─ password_reset_template.html
 │  │  │  └─ __init__.py
 │  │  └─ __init__.py
+│  ├─ static
+│  │  ├─ modern-normalize-min.css
+│  │  └─ styles.css
+│  ├─ tests
+│  │  ├─ conftest.py
+│  │  ├─ test_repository_tags.py
+│  │  ├─ test_routes_auth.py
+│  │  ├─ test_routes_messages.py
+│  │  ├─ test_routes_pictures_oktawian.py
+│  │  ├─ test_routes_search.py
+│  │  ├─ test_routes_users.py
+│  │  ├─ test_unit_repository_pictures_oktawian.py
+│  │  ├─ test_unit_repository_user.py
+│  │  └─ __init__.py
 │  └─ __init__.py
-└─ tests
+└─ templates
+   ├─ reset_password.html
    └─ __init__.py
 ```

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from typing import List
+
+from fastapi import APIRouter, Depends, UploadFile, File, status
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.orm import Session
 import cloudinary
@@ -7,9 +9,9 @@ import cloudinary.uploader
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
+from src.repository.users import get_user_by_id, list_all_users, update_user_name, delete_user
 from src.services.auth import auth_service
-from src.conf.config import settings
-from src.schemas import UserDb
+from src.schemas import UserDb, UserUpdateName
 from src.services.secrets_manager import get_secret
 
 CLOUDINARY_NAME = get_secret("CLOUDINARY_NAME")
@@ -19,6 +21,7 @@ CLOUDINARY_API_SECRET = get_secret("CLOUDINARY_API_SECRET")
 router = APIRouter(prefix="/users", tags=["users"])
 
 rate_limit = RateLimiter(times=10, seconds=60)
+
 
 @router.get("/me/", response_model=UserDb)
 async def read_users_me(current_user: User = Depends(auth_service.get_current_user)) -> UserDb:
@@ -61,3 +64,87 @@ async def update_avatar_user(file: UploadFile = File(),
         .build_url(width=250, height=250, crop='fill', version=r.get('version'))
     user = await repository_users.update_avatar(current_user.email, src_url, db)
     return user
+
+
+@router.get('/all', response_model=List[UserDb])
+async def read_all_users(db: Session = Depends(get_db)) -> List[UserDb]:
+    """
+    Asynchronously retrieves all users from the database.
+
+    This endpoint queries the database for all users and returns them as a list of Pydantic models
+    conforming to `UserDb`. This operation is non-blocking and is performed asynchronously.
+
+    Args:
+        db (Session): The database session dependency injected by FastAPI.
+
+    Returns:
+        List[UserDb]: A list of users represented as Pydantic models.
+    """
+    users = await list_all_users(db=db)
+    return users
+
+
+@router.patch('/update/{user_id}', response_model=UserDb)
+async def update_user_name_route(user_id: int,
+                                 user_name_update: UserUpdateName,
+                                 db: Session = Depends(get_db)
+                                 ) -> UserDb:
+    """
+    Asynchronously updates the name of a specific user identified by their user ID.
+
+    This endpoint allows for updating the username of a specific user. The new username is provided
+    in the request body as a JSON object. If the user is found and the username is successfully updated,
+    the updated user data is returned as a Pydantic model conforming to `UserDb`.
+
+    Args:
+        user_id (int): The unique identifier of the user whose name is to be updated.
+        user_name_update (UserUpdateName): The new name to assign to the user, received as request body.
+        db (Session): The database session dependency injected by FastAPI.
+
+    Returns:
+        UserDb: The updated user data as a Pydantic model.
+    """
+    updated_user = await update_user_name(user_id=user_id, new_name=user_name_update.username, db=db)
+    return updated_user
+
+
+@router.post('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_name_route(user_id: int,
+                                 db: Session = Depends(get_db)
+                                 ):
+    """
+    Asynchronously deletes a specific user identified by their user ID from the database.
+
+    This endpoint deletes the user with the specified `user_id` from the database. Upon successful deletion,
+    a confirmation message is returned. If the user does not exist, an HTTP 404 error is raised.
+
+    Args:
+        user_id (int): The unique identifier of the user to delete.
+        db (Session): The database session dependency injected by FastAPI.
+
+    Returns:
+        dict: A confirmation message indicating successful deletion.
+    """
+    await delete_user(user_id=user_id, db=db)
+    return {'message': 'User successfully deleted'}
+
+
+@router.get('/{user_id}', response_model=UserDb)
+async def read_user(user_id: int,
+                    db: Session = Depends(get_db)
+                    ) -> UserDb:
+    """
+    Asynchronously retrieves a user by their ID from the database.
+
+    This endpoint queries the database for a user with the specified `user_id` and returns the user data
+    as a Pydantic model conforming to `UserDb`. If the user is not found, an HTTP 404 error is raised.
+
+    Args:
+        user_id (int): The unique identifier of the user to retrieve.
+        db (Session): The database session dependency injected by FastAPI.
+
+    Returns:
+        UserDb: The requested user's data as a Pydantic model.
+    """
+    db_user = await get_user_by_id(db=db, user_id=user_id)
+    return db_user

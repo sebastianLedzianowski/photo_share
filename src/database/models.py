@@ -4,6 +4,7 @@ from sqlalchemy.sql.sqltypes import DateTime, Boolean
 
 Base = declarative_base()
 
+
 class PictureTagsAssociation(Base):
     """
     SQLAlchemy model representing the association between pictures and tags.
@@ -16,6 +17,7 @@ class PictureTagsAssociation(Base):
 
     picture_id = Column(Integer, ForeignKey('picture.id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tag.id'), primary_key=True)
+
 
 class Tag(Base):
     """
@@ -75,14 +77,17 @@ class Comment(Base):
     """
     __tablename__ = "comment"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user.id'))
     picture_id = Column(Integer, ForeignKey('picture.id'))
     content = Column(String(255), nullable=False)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 
     likes = relationship('CommentLike', back_populates='comment')
     picture = relationship('Picture', back_populates='comments')
     user = relationship('User', back_populates='comments')
+
 
 class CommentLike(Base):
     """
@@ -103,6 +108,7 @@ class CommentLike(Base):
 
     user = relationship('User', back_populates='comment_likes')
     comment = relationship('Comment', back_populates='likes')
+
 
 class User(Base):
     """
@@ -163,6 +169,8 @@ class User(Base):
             "admin": self.admin,
             "moderator": self.moderator
         }
+
+
 class Message(Base):
     """
     SQLAlchemy model representing a message.

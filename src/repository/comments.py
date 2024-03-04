@@ -1,0 +1,45 @@
+from datetime import datetime
+from typing import Type
+
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
+from src.database.models import Comment, User, Picture
+from src.schemas import CommentModel, PictureDB
+
+
+async def create_comment(body: CommentModel, picture: PictureDB, user: User, db: Session) -> Comment:
+    comment = Comment(user_id=user.id,
+                      picture_id=picture.id,
+                      content=body.content,
+                      created_at=datetime.now()
+                      )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+async def get_comment(comment_id: int, user: User, db: Session) -> Comment:
+    return db.query(Comment).filter(and_(Comment.id == comment_id, Comment.user_id == user.id)).first()
+
+
+async def get_comments(picture_id: int, skip: int, limit: int, db: Session) -> list[Type[Comment]]:
+    return db.query(Comment).filter(Comment.picture_id == picture_id).offset(skip).limit(limit).all()
+
+
+async def update_comment(comment_id: int, body: CommentModel, user: User, db: Session) -> Comment | None:
+    comment = db.query(Comment).filter(and_(Comment.id == comment_id, Comment.user_id == user.id)).first()
+    if comment:
+        comment.content = body.content
+        comment.updated_at = datetime.now()
+        db.commit()
+    return comment
+
+
+async def remove_comment(comment_id: int, db: Session) -> Type[Comment]:
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if comment:
+        db.delete(comment)
+        db.commit()
+        return comment
+
