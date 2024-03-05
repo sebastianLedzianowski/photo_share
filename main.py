@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments, users_role, pictures
+from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments, users_role, pictures, admin
 from src.database.db import get_db
 from src.database.models import User
 from src.services.secrets_manager import get_secret
@@ -40,8 +40,7 @@ app.include_router(comments.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 app.include_router(users_role.router, prefix='/api')
 app.include_router(pictures.router, prefix='/api')
-
-
+app.include_router(admin.router, prefix='/api')
 
 
 REDIS_HOST = get_secret("REDIS_HOST")

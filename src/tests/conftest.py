@@ -71,6 +71,15 @@ def create_user_db(body: user, db: session):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    return new_user
+
+
+def create_user_db_admin(db: session):
+    new_user = User(username="testuser", email="test@example.com", password="testpassword")
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 
 def login_user_confirmed_true_and_hash_password(user, session):
