@@ -125,12 +125,15 @@ class CommentModel(BaseModel):
     content: str = Field(min_length=1, max_length=300)
 
 
-class CommentResponse(CommentModel):
+class CommentUpdate(CommentModel):
+    updated_at: datetime | None
+
+
+class CommentResponse(CommentUpdate):
     id: int
     user_id: int
     picture_id: int
     created_at: datetime
-    updated_at: datetime | None
 
     class Config:
         orm_mode = True

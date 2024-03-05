@@ -4,7 +4,7 @@ from typing import Type
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from src.database.models import Comment, User, Picture
-from src.schemas import CommentModel, PictureDB
+from src.schemas import CommentModel, PictureDB, CommentResponse, CommentUpdate
 
 
 async def create_comment(body: CommentModel, picture: PictureDB, user: User, db: Session) -> Comment:
@@ -27,7 +27,7 @@ async def get_comments(picture_id: int, skip: int, limit: int, db: Session) -> l
     return db.query(Comment).filter(Comment.picture_id == picture_id).offset(skip).limit(limit).all()
 
 
-async def update_comment(comment_id: int, body: CommentModel, user: User, db: Session) -> Comment | None:
+async def update_comment(comment_id: int, body: CommentUpdate, user: User, db: Session) -> Comment | None:
     comment = db.query(Comment).filter(and_(Comment.id == comment_id, Comment.user_id == user.id)).first()
     if comment:
         comment.content = body.content
