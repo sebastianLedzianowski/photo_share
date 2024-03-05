@@ -34,6 +34,30 @@ class TestUsers(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, user)
 
+    async def test_get_user_by_username_found(self):
+        user = User(
+            id=1,
+            username="Username",
+            email="username@example.com",
+            password="password",
+            created_at="2000-02-02T00:00:00",
+            avatar=None,
+            refresh_token="refresh_token",
+            confirmed=False,
+        )
+        self.session.query().filter().first.return_value = user
+
+        result = await get_user_by_username(username=user.username, db=self.session)
+
+        self.assertEqual(result, user)
+
+    async def test_get_nonexistent_user_by_username(self):
+        self.session.query().filter().first.return_value = None
+
+        result = await get_user_by_username(username="nonexistent_user", db=self.session)
+
+        self.assertIsNone(result)
+
     async def test_get_user_by_email_not_fount(self):
         email = "example@example.com"
         self.session.query().filter().first.return_value = None

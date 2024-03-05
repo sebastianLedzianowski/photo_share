@@ -120,7 +120,7 @@ async def search_users(
     return pydantic_users
 
 
-@router.post("/users_by_picture/search", tags=["users"], response_model=List[UserResponse])
+@router.post("/users/search_by_picture", tags=["users"], response_model=List[UserResponse])
 async def search_users_by_picture(
     user_id: Optional[int] = None,
     picture_id: Optional[int] = None,

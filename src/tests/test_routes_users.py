@@ -85,3 +85,20 @@ def test_delete_user(client, user, session):
 
     # Validate the response
     assert response.status_code == 204
+
+def test_read_user_by_username(user, session, client):
+    login_user_confirmed_true_and_hash_password(user, session)
+
+    response = client.get(f"/api/users/{user.username}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == user.username
+    assert data["email"] == user.email
+
+def test_read_nonexistent_user_by_username(client):
+    user_name = "nonexistent_user"
+
+    response = client.get(f"/api/users/{user_name}")
+
+    assert response.status_code == 404
