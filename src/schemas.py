@@ -87,7 +87,7 @@ class PictureResponse(PictureBase):
     tags: Optional[List[int]]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PictureSearch(BaseModel):
@@ -133,7 +133,7 @@ class CommentResponse(CommentModel):
     updated_at: datetime | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
         
 class TagModel(BaseModel):
@@ -144,11 +144,55 @@ class TagModel(BaseModel):
 
 
 class ChangePasswordModel(BaseModel):
+    """
+    Schema for changing user password.
+
+    Attributes:
+    - current_password (str): The current password of the user.
+    - new_password (str): The new password to be set.
+    - confirm_password (str): Confirmation of the new password.
+    """
+
     current_password: str
     new_password: str
     confirm_password: str
 
 
 class ResetPasswordModel(BaseModel):
+    """
+    Schema for resetting user password.
+
+    Attributes:
+    - new_password (str): The new password to be set.
+    - confirm_password (str): Confirmation of the new password.
+    """
+    
     new_password: str
     confirm_password: str
+
+
+class PictureEdit(BaseModel):
+    """
+    Schema for editing picture parameters.
+
+    Attributes:
+    - improve (str, optional): The level of improvement to be applied to the picture (default: "0").
+    - contrast (str, optional): The level of contrast adjustment to be applied (default: "0").
+    - unsharp_mask (str, optional): The strength of the unsharp mask to be applied (default: "0").
+    - brightness (str, optional): The level of brightness adjustment to be applied (default: "0").
+    - gamma (str, optional): The gamma correction value to be applied (default: "0").
+    - grayscale (bool, optional): Flag indicating whether grayscale effect should be applied (default: False).
+    - redeye (bool, optional): Flag indicating whether redeye correction should be applied (default: False).
+    - gen_replace (str, optional): Replacement value for generated text (default: "from_null;to_null").
+    - gen_remove (str, optional): Prompt for removing generated text (default: "prompt_null").
+    """
+
+    improve: str = "0"
+    contrast: str = "0"
+    unsharp_mask: str = "0"
+    brightness: str = "0"
+    gamma: str = "0"
+    grayscale: bool = False
+    redeye: bool = False
+    gen_replace: str = "from_null;to_null"
+    gen_remove: str = "prompt_null"
