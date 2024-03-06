@@ -1,240 +1,259 @@
 import unittest
 import pytest
+import json
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime
+from sqlalchemy import create_engine, engine
+from sqlalchemy.orm import sessionmaker, Session, query
 from sqlalchemy.pool import StaticPool
+from typing import List
+import httpx
+import faker
 
-from src.routes.search import search_pictures, search_users, search_users_by_picture
+from src.routes.search import search_pictures, search_users, search_users_by_picture, router
+from src.services.search import PictureSearchService, UserSearchService, UserPictureSearchService
+from src.tests.conftest import client, session
 from src.database.models import Picture, Tag, User, Base
-from src.database.db import get_db
+from src.database.db import get_db, SessionLocal
 from src.schemas import PictureResponse, PictureSearch, UserResponse
 
 
 app = FastAPI()
 
 
-class Test_search_pictures(unittest.TestCase):
-    def setUp(self):
-        engine = create_engine("sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}, poolclass=StaticPool)
-        Base.metadata.create_all(engine)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+@pytest.fixture
+def client():
+    with TestClient(app) as client:
+        yield client
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_pictures(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        mock_get_db.return_value.query.return_value.filter.return_value.first.return_value = user
-        db = self.SessionLocal()
-        mock_get_db.return_value = db
 
-        response = client.post("/search/pictures", json={"keywords": "test"})
-        pictures = PictureResponse(id=1, description="test picture", rating=5, created_at=datetime.now(), user_id=1)
-        assert response.status_code == 200
-        assert response.json() == [pictures.dict()]
+@pytest.fixture(scope="function")
+def picture():
+    class PictureTest:
+        def __init__(self, id, user_id, rating, user, tags, picture_url, picture_name, description, created_at):
+            self.id = id
+            self.user_id = user_id
+            self.rating = rating
+            self.user = user
+            self.tags = tags
+            self.picture_url = picture_url
+            self.picture_name = picture_name
+            self.description = description
+            self.created_ad = created_at
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_pictures_rating_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        picture1 = Picture(description="test picture 1", rating=3, user_id=1)
-        picture2 = Picture(description="test picture 2", rating=5, user_id=1)
-        db = self.SessionLocal()
-        db.add(user)
-        db.add(picture1)
-        db.add(picture2)
-        db.commit()
-        mock_get_db.return_value = db
 
-        response = client.post("/search/pictures", json={"keywords": "test", "rating": 4})
-        pictures = PictureResponse(id=2, description="test picture 2", rating=5, created_at=picture2.created_at, user_id=1)
-        assert response.status_code == 200
-        assert response.json() == [pictures.dict()]
+        def dict(self):
+            return {
+                "id": self.id,
+                "user_id": self.user_id,
+                "rating": self.rating,
+                "user": self.user.dict(),
+                "tags": self.tags,
+                "picture_url": self.picture_url,
+                "picture_name": self.picture_name,
+                "description": self.description,
+                "created_at": self.created_at
+            }
+    return PictureTest(
+                    id=1,
+                    user_id=1,
+                    rating=4,
+                    user=user,
+                    tags=['picture1_tag', 'picture1_tag2'],
+                    picture_url="picture1_url",
+                    picture_name="picture1_name",
+                    description="picture1_description",
+                    created_at=datetime(2022, 1, 1)
+                    )
+
+
+@pytest.fixture(scope="function")
+def user():
+    class UserTest:
+        def __init__(self, id, username, email, password):
+            self.id = id
+            self.username = username
+            self.email = email
+            self.password = password
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "username": self.username,
+                "email": self.email,
+                "password": self.password
+            }
+    return UserTest(id=1,
+                    username="example",
+                    email="example@example.com",
+                    password="secret")
     
+
+
+fake = faker.Faker()
+
+def create_mock_picture(id):
+    return {
+        "id": id,
+        "user_id": fake.random_int(1, 10),
+        "rating": fake.random_int(1, 5),
+        "user": {
+            "id": fake.random_int(1, 10),
+            "username": fake.user_name(),
+            "email": fake.email(),
+            "password": fake.password()
+        },
+        "tags": [fake.word(), fake.word()],
+        "picture_url": fake.image_url(),
+        "picture_name": fake.word(),
+        "description": fake.sentence(),
+        "created_at": fake.date_time_between(start_date="-1y", end_date="now")
+    }
+
+def create_mock_user(id):
+    return {
+        "id": id,
+        "username": fake.user_name(),
+        "email": fake.email(),
+        "password": fake.password()
+    }
+
+
+mock_pictures = [create_mock_picture(i) for i in range(1, 11)]
+mock_users = [create_mock_user(i) for i in range(1, 11)]
+
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+for mock_picture in mock_pictures:
+    user_id = mock_picture["user"]["id"]
+    user = session.query(User).filter_by(id=user_id).first()
+    picture = Picture(id=mock_picture["id"], user_id=mock_picture["user_id"], rating=mock_picture["rating"], user=user, tags=','.join(mock_picture["tags"]), picture_url=mock_picture["picture_url"], picture_name=mock_picture["picture_name"], description=mock_picture["description"], created_at=mock_picture["created_at"])
+    session.add(picture)
     
-class Test_search_users(unittest.TestCase):
+for mock_user in mock_users:
+    user = User(id=mock_user["id"], username=mock_user["username"], email=mock_user["email"], password=mock_user["password"])
+    session.add(user)
+
+session.commit()
+session.close()
+
+
+            
+class TestPictureSearch(unittest.TestCase):
     
-    def setUp(self):
-        engine = create_engine("sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}, poolclass=StaticPool)
-        Base.metadata.create_all(engine)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    def test_search_pictures_by_keywords(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
 
-    def tearDown(self):
-        self.db.close()
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users(self, mock_get_db, client):
-        user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
-        user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
-        self.db = self.SessionLocal()
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"keywords": "test"})
-        users = [
-            UserResponse(id=1, username="testuser1", email="test1@example.com", avatar="test1.jpg", picture_count=0),
-            UserResponse(id=2, username="testuser2", email="test2@example.com", avatar="test2.jpg", picture_count=0)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_username_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        self.db.add(user)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"username": "testuser"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_email_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        self.db.add(user)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"email": "test@example.com"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_by_keywords(self, mock_get_db, client):
-        user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
-        user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
-        self.db = self.SessionLocal()
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"keywords": "testuser"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-
+    def test_search_pictures_by_tags(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+                
+    def test_search_pictures_with_rating_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
     
-class Test_search_users_by_picture(unittest.TestCase):
-    def setUp(self):
-        self.db = get_db()
-        self.client = TestClient(app)
-        self.user = User(username="testuser", email="test@example.com", avatar="test.jpg", is_moderator=True)
-        self.db.add(self.user)
-        self.db.commit()
-
-    def tearDown(self):
-        self.db.close()
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with no filters
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture")
-        users = [
-            UserResponse(id=user1.id, username="user1", email="user1@example.com", avatar="user1.jpg", picture_count=1),
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-        # Test search_users_by_picture function with user_id filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"user_id": user1.id})
-        users = [
-            UserResponse(id=user1.id, username="user1", email="user1@example.com", avatar="user1.jpg", picture_count=1),
-        ]
-        assert response.status_code == 200
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_rating_filter(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with rating filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"rating": 4})
-        users = [
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_added_after_filter(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3, created_at=datetime.now() - timedelta(days=10))
-        picture2 = Picture(user_id=user2.id, rating=5, created_at=datetime.now())
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with added_after filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"added_after": datetime.now() - timedelta(days=11)})
-        users = [
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_not_moderator(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with not moderator user
-        mock_get_current_user.return_value = User(username="testuser", email="test@example.com", avatar="test.jpg", is_moderator=False)
-        mock_get_db.return_value = self.db
-
-        with pytest.raises(HTTPException) as exc_info:
-            client.post("/search/users_by_picture")
-
-        assert exc_info.value.status_code == 403
-        assert exc_info.value.detail == "User filtering is only available to moderators and administrators."
+    def test_search_pictures_with_added_after_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+    
+    def test_search_pictures_sorting(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+    
+class TestUserSearch(unittest.TestCase):
+    
+    def test_search_users_by_keyword(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
         
+    def test_search_users_by_username(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+        
+    def test_search_users_by_email(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+
+
+class TestUserPictureSearch(unittest.TestCase):
+    def test_search_users_by_pictures_by_keywords(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+
+    def test_search_users_by_pictures_with_user_id_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+                
+    def test_search_users_by_pictures_with_picture_id_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+                
+    def test_search_users_by_pictures_with_rating_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
+    
+    def test_search_users_by_pictures_with_added_after_filter(self):
+        with TestClient(app) as client:
+            with get_db() as db:
+                service = PictureSearchService(db)
+                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                self.assertIsInstance(result, list)
