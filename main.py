@@ -1,10 +1,15 @@
+from typing import Optional
+
 import httpx
 import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_limiter import FastAPILimiter
 from sqlalchemy.orm import Session
+from starlette import status
+from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -61,11 +66,25 @@ async def startup():
     await FastAPILimiter.init(r)
 
 
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+    user_id = request.cookies.get("user_id")
+    if user_id is None:
+        return None  # Return None instead of raising an exception
+    user = db.query(User).filter(User.id == user_id).first()
+    return user
+
+
 @app.get("/")
-async def index(request: Request):
-    return templates.TemplateResponse('index.html',
-                                      {'request': request}
-                                      )
+async def index(request: Request,
+                db: Session = Depends(get_db),
+                current_user: User = Depends(get_current_user)
+                ):
+    user = db.query(User).filter(User.id == current_user).first()
+    print(user)
+
+    context = {'request': request, 'user': user}
+
+    return templates.TemplateResponse('index.html', context)
 
 
 @app.get("/pictures")
@@ -84,6 +103,7 @@ async def users(request: Request):
     async with httpx.AsyncClient() as client:
         response = await client.get('http://localhost:8000/api/users/all')
         users = response.json()
+        print(f'{users}')
 
     return templates.TemplateResponse('users.html',
                                       {'request': request,
@@ -94,6 +114,32 @@ async def users(request: Request):
 async def show_user(request: Request, user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     return templates.TemplateResponse("user_details.html", {"request": request, "user": user})
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.post("/login")
+async def process_login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    form_data_fields = {
+        "username": form_data.username,
+        "password": form_data.password
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post("http://localhost:8000/api/auth/login", data=form_data_fields)
+        if response.status_code == 200:
+            token_data = response.json()
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+            response = RedirectResponse(url="/", status_code=303)
+            response.set_cookie(key="access_token", value=access_token, httponly=True)
+            response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+            return response
+        else:
+            return templates.TemplateResponse("login.html", {"request": request, "errors": ["Login failed. Please try again."]})
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)
