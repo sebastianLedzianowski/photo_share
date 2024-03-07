@@ -200,8 +200,9 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
 
     await repository_pictures.validate_edit_parameters(picture_edit)
 
+    configure_cloudinary()
+
     try:
-        configure_cloudinary()
 
         picture = await repository_pictures.get_one_picture(picture_id, db)
         transformation = await repository_pictures.parse_transform_effects(picture_edit)
