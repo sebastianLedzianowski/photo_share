@@ -58,8 +58,11 @@ async def update_avatar_user(file: UploadFile = File(),
     return user
 
 
-@router.get('/all', response_model=List[UserDb])
-async def read_all_users(db: Session = Depends(get_db)) -> List[UserDb]:
+@router.get('/all',
+            response_model=List[UserDb],
+            dependencies=[Depends(auth_service.require_role(required_role="moderator"))])
+async def read_all_users(db: Session = Depends(get_db),
+                         ) -> List[UserDb]:
     """
     Asynchronously retrieves all users from the database.
 
