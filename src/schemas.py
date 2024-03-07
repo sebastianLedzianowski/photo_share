@@ -39,6 +39,19 @@ class UserUpdateName(BaseModel):
     username: str = Field(min_length=5, max_length=16)
 
 
+class AdminUserUpdateModel(BaseModel):
+    """
+    Schema for admin to update user data, excluding password, refresh_token and created_at fields.
+    """
+    username: Optional[str] = Field(None, min_length=5, max_length=16)
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    confirmed: Optional[bool] = None
+    admin: Optional[bool] = None
+    moderator: Optional[bool] = None
+
+
+
 class TokenModel(BaseModel):
     """
     Schema for the response containing access and refresh tokens.
@@ -76,7 +89,7 @@ class PictureDB(BaseModel):
         from_attributes = True
 
 
-class PictureUpdate(BaseModel):
+class PictureDescription(BaseModel):
     description: Optional[str] | None
 
 
