@@ -38,7 +38,6 @@ def test_upload_picture(user, session, client):
     mock_picture = create_mock_picture()
     mock_uploaded_file = {"picture": ("test_image.png", mock_picture, "image/png")}
 
-
     response = client.post(
         "api/pictures/upload",
         headers={
@@ -128,25 +127,40 @@ def test_update_picture_not_found(user, session):
     assert response.status_code == 404
 
 
-def test_delete_picture_found(client, session):
+def test_delete_picture_found(client, session, user):
+    new_user = login_user_token_created(user, session)
 
-    with patch.object(auth_service, 'r') as r_mock:
-        r_mock.get.return_value = None
+    # with patch.object(auth_service, 'r') as r_mock:
+    #     r_mock.get.return_value = None
 
-        response = client.delete("api/pictures/1")
+    response = client.delete(
+        "api/pictures/1",
+        headers={
+            'accept': 'application/json',
+            "Authorization": f"Bearer {new_user.get('access_token')}"
+        }
+    )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "id" in data
-        assert "picture_url" in data
-        assert "rating" in data
-        assert "created_at" in data
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert "picture_url" in data
+    assert "rating" in data
+    assert "created_at" in data
 
 
 def test_delete_picture_not_found(user, session, client):
+    new_user = login_user_token_created(user, session)
 
-    response = client.delete("api/pictures/9999")
+    response = client.delete(
+        "api/pictures/9999",
+         headers={
+             'accept': 'application/json',
+             "Authorization": f"Bearer {new_user.get('access_token')}"
+            }
+         )
     assert response.status_code == 404
+
 
 if __name__ == "__main__":
     pytest.main()
