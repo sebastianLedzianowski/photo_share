@@ -48,7 +48,8 @@ class TestUnitRepositoryPictures(unittest.IsolatedAsyncioTestCase):
 
     async def test_upload_picture(self):
         picture = self.picture1
-        result = await upload_picture(url=picture.picture_url, user=self.user, db=self.session)
+        picture_name = f'picture/{self.user.email}'
+        result = await upload_picture(url=picture.picture_url, version="v1", picture_name=picture_name, user=self.user, db=self.session)
         self.assertEqual(result.picture_url, picture.picture_url)
         self.assertTrue(hasattr(result, "id"))
 

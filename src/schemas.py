@@ -76,7 +76,7 @@ class PictureDB(BaseModel):
         from_attributes = True
 
 
-class PictureUpdate(BaseModel):
+class PictureDescription(BaseModel):
     description: Optional[str] | None
 
 
