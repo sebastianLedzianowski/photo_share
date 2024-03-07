@@ -18,8 +18,9 @@ async def upload_description(picture_id: int, description: str, db: Session) -> 
     """
 
     picture = db.query(Picture).filter(Picture.id == picture_id).first()
-    picture.description = description
-    db.commit()
+    if picture:
+        picture.description = description
+        db.commit()
     return picture
 
 
@@ -42,7 +43,7 @@ async def get_all_descriptions(skip: int, limit: int, db: Session) -> list[str]:
     return db.query(Picture.description).offset(skip).limit(limit).all()
 
 
-async def get_one_description(picture_id: int, db: Session) -> Picture:
+async def get_one_description(picture_id: int, db: Session) -> str:
     """
     Retrieves the description of a specific picture from the database.
 
