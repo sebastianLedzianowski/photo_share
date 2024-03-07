@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, func, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql.sqltypes import DateTime, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
@@ -90,14 +91,14 @@ class Comment(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
-    likes = relationship('CommentLike', back_populates='comment')
+    reactions = relationship('Reaction', back_populates='comment')
     picture = relationship('Picture', back_populates='comments')
     user = relationship('User', back_populates='comments')
 
 
-class CommentLike(Base):
+class Reaction(Base):
     """
-    SQLAlchemy model representing a like on a comment.
+    SQLAlchemy model representing a reaction on a comment.
 
     Attributes:
         id (int): Primary key for the like.
@@ -106,14 +107,12 @@ class CommentLike(Base):
         user (User): Relationship with the User model representing the user who liked the comment.
         comment (Comment): Relationship with the Comment model representing the liked comment.
     """
-    __tablename__ = "comment_like"
+    __tablename__ = "reactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
     comment_id = Column(Integer, ForeignKey('comment.id'))
-
-    user = relationship('User', back_populates='comment_likes')
-    comment = relationship('Comment', back_populates='likes')
+    data = Column(JSONB)
+    comment = relationship('Comment', back_populates='reactions')
 
 
 class User(Base):
@@ -152,7 +151,6 @@ class User(Base):
 
     pictures = relationship('Picture', back_populates='user')
     comments = relationship('Comment', back_populates='user')
-    comment_likes = relationship('CommentLike', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')
     received_messages = relationship('Message', back_populates='receiver', foreign_keys='Message.receiver_id')
 
