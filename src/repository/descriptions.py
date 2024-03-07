@@ -34,6 +34,6 @@ async def delete_description(picture_id: int, db: Session) -> Picture | None:
 
     picture = db.query(Picture).filter(Picture.id == picture_id).first()
     if picture:
-        picture.description = ""
+        picture.description = None
         db.commit()
     return picture

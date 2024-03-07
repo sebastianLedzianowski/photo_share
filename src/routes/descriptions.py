@@ -33,7 +33,7 @@ async def get_all_descriptions(
     return descriptions
 
 
-@router.get("/{picture_id}")
+@router.get("/{picture_id}", response_model=PictureDescription)
 async def get_one_description(
         picture_id: int,
         db: Session = Depends(get_db)

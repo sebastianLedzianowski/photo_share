@@ -36,9 +36,9 @@ async def upload_picture(
     Returns:
     - The URL of the uploaded picture as a PictureDB instance.
     """
+    configure_cloudinary()
 
     try:
-        configure_cloudinary()
 
         picture_name = f'picture/{current_user.email}'
         picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, overwrite=True)
@@ -128,8 +128,9 @@ async def update_picture(
     - The URL of the updated picture as a PictureDB instance.
     """
 
+    configure_cloudinary()
+
     try:
-        configure_cloudinary()
 
         picture = cloudinary.uploader.upload(picture.file, public_id=f'picture/{current_user.email}', overwrite=True)
 
