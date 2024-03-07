@@ -1,6 +1,7 @@
 import httpx
 import redis.asyncio as redis
 import uvicorn
+
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi_limiter import FastAPILimiter
@@ -8,7 +9,8 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes import users, auth, messages, pictures_oktawian, tags, search, comments, pictures, admin
+from src.routes import users, auth, messages, tags, search, comments, users_role, pictures, descriptions
+
 from src.database.db import get_db
 from src.database.models import User
 from src.services.secrets_manager import get_secret
@@ -35,11 +37,12 @@ app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(search.router, prefix='/api')
-app.include_router(pictures_oktawian.router, prefix='/api')
 app.include_router(comments.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 app.include_router(pictures.router, prefix='/api')
 app.include_router(admin.router, prefix='/api')
+app.include_router(descriptions.router, prefix='/api')
+
 
 
 REDIS_HOST = get_secret("REDIS_HOST")

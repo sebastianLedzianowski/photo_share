@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, UploadFile, File, status
+from fastapi import APIRouter, Depends, UploadFile, File, status, HTTPException
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.orm import Session
 import cloudinary
@@ -9,14 +9,11 @@ import cloudinary.uploader
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
-from src.repository.users import get_user_by_id, list_all_users, update_user_name, delete_user
+from src.repository.users import get_user_by_id, list_all_users, update_user_name, delete_user, get_user_by_username
 from src.services.auth import auth_service
 from src.schemas import UserDb, UserUpdateName
-from src.services.secrets_manager import get_secret
+from src.conf.cloudinary import configure_cloudinary
 
-CLOUDINARY_NAME = get_secret("CLOUDINARY_NAME")
-CLOUDINARY_API_KEY = get_secret("CLOUDINARY_API_KEY")
-CLOUDINARY_API_SECRET = get_secret("CLOUDINARY_API_SECRET")
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -52,12 +49,7 @@ async def update_avatar_user(file: UploadFile = File(),
     Returns:
         UserDb: The updated user profile.
     """
-    cloudinary.config(
-        cloud_name=CLOUDINARY_NAME,
-        api_key=CLOUDINARY_API_KEY,
-        api_secret=CLOUDINARY_API_SECRET,
-        secure=True
-    )
+    configure_cloudinary()
 
     r = cloudinary.uploader.upload(file.file, public_id=f'contact_book/{current_user.email}', overwrite=True)
     src_url = cloudinary.CloudinaryImage(f'contact_book/{current_user.email}') \
@@ -151,3 +143,22 @@ async def read_user(user_id: int,
     """
     db_user = await get_user_by_id(db=db, user_id=user_id)
     return db_user
+
+
+@router.get("/{username}", response_model=UserDb)
+async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:
+    """
+    Read the user's profile by their unique username.
+
+    Args:
+        username (str): The unique username of the user.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        UserDb: The user's profile as a Pydantic model.
+    """
+    user = await get_user_by_username(db=db, username=username)
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404, detail="User not found")

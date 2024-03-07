@@ -1,11 +1,10 @@
 from typing import Type
-
 from sqlalchemy.orm import Session
-
 from src.database.models import Picture, User
+from fastapi import HTTPException
 
 
-async def upload_picture(url: str, user: User, db: Session) -> Picture:
+async def upload_picture(url: str, version: str, picture_name: str,  user: User, db: Session) -> Picture:
     """
     Asynchronously uploads a picture to the database.
 
@@ -21,8 +20,8 @@ async def upload_picture(url: str, user: User, db: Session) -> Picture:
     Returns:
     - Picture: The newly uploaded Picture object.
     """
-
-    picture = Picture(picture_url=url, user_id=user.id)
+    converted_picture_name = f"v{version}/{picture_name}"
+    picture = Picture(picture_url=url, user_id=user.id, picture_name=converted_picture_name)
     db.add(picture)
     db.commit()
     db.refresh(picture)
@@ -109,3 +108,120 @@ async def delete_picture(picture_id: int, db: Session) -> Picture | None:
         db.delete(picture)
         db.commit()
     return picture
+
+
+async def upload_edited_picture(picture, edited_url, picture_id, db: Session) -> Picture | None:
+    """
+    Upload the edited picture to the database and return the edited URL.
+
+    Parameters:
+    - picture: The picture object to be updated with the edited URL.
+    - edited_url (str): The edited URL of the picture.
+    - picture_id (int): The ID of the picture being edited.
+    - db (Session): An SQLAlchemy database session instance provided by the FastAPI dependency injection system.
+
+    Returns:
+    - str: The edited URL of the picture.
+
+    Raises:
+    - HTTPException: If there is an issue committing the changes to the database.
+    """
+
+    picture.picture_edited_url=edited_url
+    db.commit()
+
+    return edited_url
+
+
+async def validate_edit_parameters(picture_edit):
+    """
+    Validate the parameters provided for editing a picture.
+
+    Parameters:
+    - picture_edit (PictureEdit): An object containing the parameters for editing the picture. The parameters include:
+    - improve (str): A string representing the improvement level. Must be between 0 and 100.
+    - contrast (str): A string representing the contrast level. Must be between -100 and 100.
+    - unsharp_mask (str): A string representing the unsharp mask value. Must be between 1 and 2000.
+    - brightness (str): A string representing the brightness value. Must be between -99 and 100.
+    - gamma (str): A string representing the gamma correction value. Must be between -50 and 150.
+    - gen_replace (str): A string representing the replacement transformation. If specified, 'gen_remove' should not be provided.
+    - gen_remove (str): A string representing the removal transformation. If specified, 'gen_replace' should not be provided.
+
+    Raises:
+    - HTTPException: If any of the parameters are invalid or conflicting.
+    """
+
+
+    try:
+        if picture_edit.improve != "0":
+            improve_value = int(picture_edit.improve)
+            if not 0 <= improve_value <= 100:
+                raise ValueError("Value of 'improve' must be between 0 and 100.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        if picture_edit.contrast != "0":
+            contrast_value = int(picture_edit.contrast)
+            if not -100 <= contrast_value <= 100:
+                raise ValueError("Value of 'contrast' must be between -100 and 100.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        if picture_edit.unsharp_mask != "0":
+            unsharp_mask_value = int(picture_edit.unsharp_mask)
+            if not 1 <= unsharp_mask_value <= 2000:
+                raise ValueError("Value of 'unsharp_mask' must be between 1 and 2000.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        if picture_edit.brightness != "0":
+            brightness_value = int(picture_edit.brightness)
+            if not -99 <= brightness_value <= 100:
+                raise ValueError("Value of 'brightness' must be between -99 and 100.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        if picture_edit.gamma != "0":
+            gamma_value = int(picture_edit.gamma)
+            if not -50 <= gamma_value <= 150:
+                raise ValueError("Value of 'gamma' must be between -50 and 150.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        if picture_edit.gen_replace != "from_null;to_null" and picture_edit.gen_remove != "prompt_null":
+            raise HTTPException(status_code=400, detail="You can only specify either gen_replace or gen_remove, not both.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    
+async def parse_transform_effects(picture_edit):
+    """
+    Parse the transformation effects based on the provided parameters for editing a picture.
+
+    Parameters:
+    - picture_edit (PictureEdit): An object containing the parameters for editing the picture.
+
+    Returns:
+    - list: A list of dictionaries representing the transformation effects to be applied to the picture.
+    """
+
+    transformation = [
+        {'effect': f"gen_replace:{picture_edit.gen_replace}"} if picture_edit.gen_replace != "from_null;to_null" else None,
+        {'effect': f"gen_remove:{picture_edit.gen_remove}"} if picture_edit.gen_remove != "prompt_null" else None,
+        {'effect': f"improve:outdoor:{picture_edit.improve}"} if picture_edit.improve != "0" else None,
+        {'effect': f"contrast:{picture_edit.contrast}"} if picture_edit.contrast != "0" else None,
+        {'effect': f"unsharp_mask:{picture_edit.unsharp_mask}"} if picture_edit.unsharp_mask != "0" else None,
+        {'effect': f"brightness:{picture_edit.brightness}"} if picture_edit.brightness != "0" else None,
+        {'effect': f"gamma:{picture_edit.gamma}"} if picture_edit.gamma != "0" else None,
+        {'effect': f"grayscale"} if picture_edit.grayscale != False else None,
+        {'effect': f"redeye"} if picture_edit.redeye != False else None,
+    ]
+
+    transformation = [effect for effect in transformation if effect is not None]
+
+    return transformation
