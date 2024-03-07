@@ -6,32 +6,112 @@ from unittest.mock import MagicMock, patch, Mock
 
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, engine
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session, query
 from sqlalchemy.pool import StaticPool
 from typing import List
 import httpx
-from faker import Faker
+import faker
 
 from src.routes.search import search_pictures, search_users, search_users_by_picture, router
 from src.services.search import PictureSearchService, UserSearchService, UserPictureSearchService
-from src.tests.conftest import client, session
-from src.tests.test_routes_search import user, picture
+from src.tests.conftest import client, session, engine
 from src.database.models import Picture, Tag, User, Base
 from src.database.db import get_db, SessionLocal
 from src.schemas import PictureResponse, PictureSearch, UserResponse
-from main import app
 
 
-class TestPictureSearchService(unittest.TestCase):
+app = FastAPI()
 
+
+@pytest.fixture
+def client():
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def picture():
+    class PictureTest:
+        def __init__(self, id, user_id, rating, user, tags, picture_name, description, created_at):
+            self.id = id
+            self.user_id = user_id
+            self.rating = rating
+            self.user = user
+            self.tags = tags
+            self.picture_name = picture_name
+            self.description = description
+            self.created_at = created_at
+
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "user_id": self.user_id,
+                "rating": self.rating,
+                "user": self.user.dict(),
+                "tags": self.tags,
+                "picture_name": self.picture_name,
+                "description": self.description,
+                "created_at": self.created_at
+            }
+    return PictureTest(
+                    id=1,
+                    user_id=1,
+                    rating=4,
+                    user=user,
+                    tags=['picture1_tag', 'picture1_tag2'],
+                    picture_name="picture1_name",
+                    description="picture1_description",
+                    created_at=datetime(2022, 1, 1)
+                    )
+    
+
+test_pictures = {
+    "picture_1": picture(1, 1, 3, "Kamileusz", "family", "Kamileusz' family", "family of Kamileusz", datetime(2023-02-02)),
+    "picture_2": picture(2, 1, 5, "Kamil", "rodzina", "Rodzina Kamila", "Rodzinka Kamilka", datetime(2022-02-02))
+}
+
+
+@pytest.fixture
+def user():
+    class UserTest:
+        def __init__(self, id, username, email):
+            self.id = id
+            self.username = username
+            self.email = email
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "username": self.username,
+                "email": self.email
+            }
+    return UserTest(
+                    id=1,
+                    username="example",
+                    email="example@example.com"
+                    )
+    
+    
+test_users = {
+    "user_1": user(1, "Kamileusz", "Kamileusz@example.com"),
+    "user_2": user(2, "Kamil", "Kamil@example.com")
+}
+
+class TestPictureSearch(unittest.TestCase):
+    
     def test_search_pictures_by_keywords(self):
-        with TestClient(app) as client:
-            with get_db() as db:
-                service = PictureSearchService(db)
-                search_params = PictureSearch(keywords="nature", tags=["landscape"])
-                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
-                self.assertIsInstance(result, list)
+            with TestClient(app) as client:
+                with get_db() as db:
+                    service = PictureSearchService(db)
+                    search_params = PictureSearch(keywords="nature")
+                    result = service.search_pictures(search_params)
+                    self.assertIsInstance(result, list)
 
     def test_search_pictures_by_tags(self):
         with TestClient(app) as client:
@@ -40,7 +120,7 @@ class TestPictureSearchService(unittest.TestCase):
                 search_params = PictureSearch(keywords="nature", tags=["landscape"])
                 result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
                 self.assertIsInstance(result, list)
-                
+
     def test_search_pictures_with_rating_filter(self):
         with TestClient(app) as client:
             with get_db() as db:
@@ -65,7 +145,8 @@ class TestPictureSearchService(unittest.TestCase):
                 result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
                 self.assertIsInstance(result, list)
     
-class TestUserSearchService(unittest.TestCase):
+    
+class TestUserSearch(unittest.TestCase):
     
     def test_search_users_by_keyword(self):
         with TestClient(app) as client:
@@ -92,7 +173,7 @@ class TestUserSearchService(unittest.TestCase):
                 self.assertIsInstance(result, list)
 
 
-class TestUserPictureSearchService(unittest.TestCase):
+class TestUserPictureSearch(unittest.TestCase):
     def test_search_users_by_pictures_by_keywords(self):
         with TestClient(app) as client:
             with get_db() as db:
@@ -132,4 +213,52 @@ class TestUserPictureSearchService(unittest.TestCase):
                 search_params = PictureSearch(keywords="nature", tags=["landscape"])
                 result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
                 self.assertIsInstance(result, list)
+                
+                
+                
+                
+# fake = faker.Faker()
+
+# def create_mock_picture(id):
+#     return {
+#         "id": id,
+#         "user_id": fake.random_int(1, 10),
+#         "rating": fake.random_int(1, 5),
+#         "user": {
+#             "id": fake.random_int(1, 10),
+#             "username": fake.user_name(),
+#             "email": fake.email(),
+#             "password": fake.password()
+#         },
+#         "tags": [fake.word(), fake.word()],
+#         "picture_url": fake.image_url(),
+#         "picture_name": fake.word(),
+#         "description": fake.sentence(),
+#         "created_at": fake.date_time_between(start_date="-1y", end_date="now")
+#     }
+
+# def create_mock_user(id):
+#     return {
+#         "id": id,
+#         "username": fake.user_name(),
+#         "email": fake.email(),
+#         "password": fake.password()
+#     }
+
+
+# mock_pictures = [create_mock_picture(i) for i in range(1, 11)]
+# mock_users = [create_mock_user(i) for i in range(1, 11)]
+
+
+# Session = sessionmaker(bind=engine)
+# session = Session()
+
+# for mock_picture in mock_pictures:
+#     user_id = mock_picture["user"]["id"]
+#     user = session.query(User).filter_by(id=user_id).first()
+#     picture = Picture(id=mock_picture["id"], user_id=mock_picture["user_id"], rating=mock_picture["rating"], user=user, tags=','.join(mock_picture["tags"]), picture_url=mock_picture["picture_url"], picture_name=mock_picture["picture_name"], description=mock_picture["description"], created_at=mock_picture["created_at"])
+#     session.add(picture)
     
+# for mock_user in mock_users:
+#     user = User(id=mock_user["id"], username=mock_user["username"], email=mock_user["email"], password=mock_user["password"])
+#     session.add(user)
