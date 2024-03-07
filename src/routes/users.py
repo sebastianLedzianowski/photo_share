@@ -124,6 +124,25 @@ async def delete_user_name_route(user_id: int,
     return {'message': 'User successfully deleted'}
 
 
+@router.get("/name/{username}", response_model=UserDb)
+async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:
+    """
+    Read the user's profile by their unique username.
+
+    Args:
+        username (str): The unique username of the user.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        UserDb: The user's profile as a Pydantic model.
+    """
+    user = await get_user_by_username(db=db, username=username)
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
+
+
 @router.get('/{user_id}', response_model=UserDb)
 async def read_user(user_id: int,
                     db: Session = Depends(get_db)
@@ -143,22 +162,3 @@ async def read_user(user_id: int,
     """
     db_user = await get_user_by_id(db=db, user_id=user_id)
     return db_user
-
-
-@router.get("/{username}", response_model=UserDb)
-async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:
-    """
-    Read the user's profile by their unique username.
-
-    Args:
-        username (str): The unique username of the user.
-        db (Session): SQLAlchemy database session.
-
-    Returns:
-        UserDb: The user's profile as a Pydantic model.
-    """
-    user = await get_user_by_username(db=db, username=username)
-    if user:
-        return user
-    else:
-        raise HTTPException(status_code=404, detail="User not found")
