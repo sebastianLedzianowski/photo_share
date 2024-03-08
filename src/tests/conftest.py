@@ -213,22 +213,19 @@ def fake_db_for_search_test():
     This fixture is used to fake db for search testing
     '''
     db = {"pictures": {}, "users": {}, "next_picture_id": 1, "next_user_id": 1}
-    def create_picture(user_id, rating, user, tags, picture_name, description, created_at):
+    def create_picture(user_id, rating, tags, picture_name, created_at):
         
             picture_id = db["next_picture_id"]
             db["pictures"][picture_id] = {
                 "id": picture_id,
                 "user_id": user_id,
                 "rating": rating,
-                "user": user.dict(),
                 "tags": tags,
                 "picture_name": picture_name,
-                "description": description,
                 "created_at": created_at
             }
             db["next_picture_id"] += 1
-            # Create a Picture object and add it to the database session
-            picture = Picture(id=picture_id,user_id=user_id, rating=rating, user=user.dict(), tags=tags, picture_name=picture_name, description=description, created_at=created_at)
+            picture = Picture(id=picture_id,user_id=user_id, rating=rating, tags=tags, picture_name=picture_name, created_at=created_at)
             db["pictures"][picture_id] = picture
             return picture
 
