@@ -24,98 +24,10 @@ from src.database.models import Picture, Tag, User
 from src.database.db import get_db, SessionLocal
 from src.schemas import PictureResponse, PictureSearch, UserResponse
 from src.services.auth import Auth
+from src.tests.conftest import fake_db_for_search_test
 
 
 app = FastAPI()
-
-
-engine = create_engine('sqlite:///test_routes_search.db')
-
-
-Base = declarative_base()
-
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-@pytest.fixture
-def client():
-    with TestClient(app) as client:
-        yield client
-        
-
-@pytest.fixture(scope="function", autouse=True)
-def session():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        
-
-@pytest.fixture
-def picture():
-    class PictureTest:
-        def __init__(self, id, user_id, rating, user, tags, picture_name, description, created_at):
-            self.id = id
-            self.user_id = user_id
-            self.rating = rating
-            self.user = user
-            self.tags = tags
-            self.picture_name = picture_name
-            self.description = description
-            self.created_at = created_at
-
-
-        def dict(self):
-            return {
-                "id": self.id,
-                "user_id": self.user_id,
-                "rating": self.rating,
-                "user": self.user.dict(),
-                "tags": self.tags,
-                "picture_name": self.picture_name,
-                "description": self.description,
-                "created_at": self.created_at
-            }
-    return PictureTest(
-                    id=1,
-                    user_id=1,
-                    rating=4,
-                    user=user,
-                    tags=['picture1_tag', 'picture1_tag2'],
-                    picture_name="picture1_name",
-                    description="picture1_description",
-                    created_at=datetime(2022, 1, 1)
-                    )
-
-
-@pytest.fixture
-def user():
-    class UserTest:
-        def __init__(self, id, username, email):
-            self.id = id
-            self.username = username
-            self.email = email
-
-        def dict(self):
-            return {
-                "id": self.id,
-                "username": self.username,
-                "email": self.email
-            }
-    return UserTest(
-                    id=1,
-                    username="example",
-                    email="example@example.com"
-                    )
-
-
-Base.metadata.create_all(engine)
-
 
 fake = faker.Faker()
 
@@ -126,7 +38,7 @@ def create_mock_picture(id):
         "rating": fake.random_int(1, 5),
         "user": {
             "id": fake.random_int(1, 10),
-            "username": fake.user_name(),
+            "username": fake.username(),
             "email": fake.email()
         },
         "tags": [fake.word(), fake.word()],
@@ -137,7 +49,7 @@ def create_mock_picture(id):
 def create_mock_user(id):
     return {
         "id": id,
-        "username": fake.user_name(),
+        "username": fake.username(),
         "email": fake.email()
     }
 
@@ -145,9 +57,6 @@ def create_mock_user(id):
 mock_pictures = [create_mock_picture(i) for i in range(1, 11)]
 mock_users = [create_mock_user(i) for i in range(1, 11)]
 
-
-Session = sessionmaker(bind=engine)
-session = Session()
 
 for mock_picture in mock_pictures:
     user_id = mock_picture["user"]["id"]
@@ -161,7 +70,7 @@ for mock_user in mock_users:
 
 # Mock authenticated user
 def mock_get_current_user():
-    return User(id=1, username="test_user", is_moderator=True)  # Mock a moderator user
+    return User(id=1, username="test_user", email="test_email")
 
 app.dependency_overrides[Auth.get_current_user] = mock_get_current_user
 
@@ -210,7 +119,7 @@ class TestPictureSearch(unittest.TestCase):
             with get_db() as db:
                 service = PictureSearchService(db)
                 search_params = PictureSearch(keywords="nature", tags=["landscape"])
-                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
+                result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1))
                 self.assertIsInstance(result, list)
                 response = client.post("/pictures/search", json={"search_params": {...}})
                 assert response.status_code == 200
@@ -318,6 +227,7 @@ class TestUserPictureSearch(unittest.TestCase):
                 response = client.post("/users/search_by_picture", json={"picture_id": ..., "rating": ...})
                 assert response.status_code == 200
                 assert len(response.json()) > 0            
-            
-                
-                
+
+
+if __name__ == "__main__":
+    pytest.main()
