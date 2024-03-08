@@ -184,3 +184,34 @@ def fake_db_for_message_test():
     db["get_messages_for_user"] = get_messages_for_user
 
     return db
+
+
+def fake_db_for_search_test():
+    '''
+    This fixture is used to fake db for search testing
+    '''
+    db = {"pictures": {}, "users": {}, "next_picture_id": 1, "next_user_id": 1}
+
+    def create_picture(id, user_id, rating, user, tags, picture_name, created_at):
+        picture_id = db["next_picture_id"]
+        db["pictures"][picture_id] = {
+            "id": id,
+            "user_id": user_id,
+            "rating": rating,
+            "user": user.dict(),
+            "tags": tags,
+            "picture_name":picture_name,
+            "created_at": created_at
+        }
+        db["next_user_id"] += 1
+        return db["pictures"][picture_id]
+
+    def create_user(email, username):
+        user_id = db["next_user_id"]
+        db["users"][user_id] = {
+            "id": user_id,
+            "email": email,
+            "username": username
+        }
+        db["next_user_id"] += 1
+        return db["users"][user_id]
