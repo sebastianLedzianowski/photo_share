@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Type
+from typing import Type, Union
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
@@ -36,12 +36,15 @@ async def update_comment(comment_id: int, body: CommentUpdate, user: User, db: S
     return comment
 
 
-async def remove_comment(comment_id: int, db: Session) -> Type[Comment]:
+async def remove_comment(comment_id: int, user: User, db: Session) -> Union[dict, None]:
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
-    if comment:
-        db.delete(comment)
-        db.commit()
+    if user.admin or user.moderator:
+        if comment:
+            db.delete(comment)
+            db.commit()
         return comment
+    else:
+        return {"message": "You can't delete the comment."}
 
 
 async def add_reaction_to_comment(comment_id: int, reaction: str, user: User, db: Session):
