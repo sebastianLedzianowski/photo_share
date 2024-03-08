@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-
+from datetime import datetime
 from sqlalchemy.orm import Session
 
 from src.database.models import Picture, User
@@ -22,7 +22,7 @@ class TestUnitRepositoryPictures(unittest.IsolatedAsyncioTestCase):
             username="Username",
             email="username@example.com",
             password="password",
-            created_at="2000-02-02T00:00:00",
+            created_at=datetime.now(),
             avatar=None,
             refresh_token="refresh_token",
             confirmed=False,
@@ -30,19 +30,19 @@ class TestUnitRepositoryPictures(unittest.IsolatedAsyncioTestCase):
         self.picture1 = Picture(
             id=1,
             picture_url="http://example1.com",
-            created_at="2000-02-02T00:00:00",
+            created_at=datetime.now(),
             user_id=self.user
         )
         self.picture2 = Picture(
             id=2,
             picture_url="http://example22.com",
-            created_at="2010-02-02T00:00:00",
+            created_at=datetime.now(),
             user_id=self.user
         )
         self.picture3 = Picture(
             id=3,
             picture_url="http://example333.com",
-            created_at="2020-02-02T00:00:00",
+            created_at=datetime.now(),
             user_id=self.user
         )
 
