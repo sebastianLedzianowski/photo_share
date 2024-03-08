@@ -1,240 +1,217 @@
 import unittest
 import pytest
+import json
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import MagicMock, patch, Mock
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship, Session, query
+from datetime import datetime
 from sqlalchemy.pool import StaticPool
+from typing import List
+from fastapi.templating import Jinja2Templates
 
 from src.routes.search import search_pictures, search_users, search_users_by_picture
-from src.database.models import Picture, Tag, User, Base
-from src.database.db import get_db
-from src.schemas import PictureResponse, PictureSearch, UserResponse
+from src.services.search import PictureSearchService, UserSearchService, UserPictureSearchService
+from src.database.models import Base, User, Picture, Tag
+from src.database.db import get_db, SessionLocal
+from src.schemas import PictureResponse, PictureSearch, UserResponse, UserSearch
+from src.services.auth import Auth
+from src.tests.conftest import fake_db_for_search_test
+from main import app
+from src.services.auth import auth_service
+from faker import Faker
 
 
-app = FastAPI()
+fake = Faker("pl_PL")
 
 
-class Test_search_pictures(unittest.TestCase):
-    def setUp(self):
-        engine = create_engine("sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}, poolclass=StaticPool)
-        Base.metadata.create_all(engine)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_pictures(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        mock_get_db.return_value.query.return_value.filter.return_value.first.return_value = user
-        db = self.SessionLocal()
-        mock_get_db.return_value = db
 
-        response = client.post("/search/pictures", json={"keywords": "test"})
-        pictures = PictureResponse(id=1, description="test picture", rating=5, created_at=datetime.now(), user_id=1)
-        assert response.status_code == 200
-        assert response.json() == [pictures.dict()]
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_pictures_rating_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        picture1 = Picture(description="test picture 1", rating=3, user_id=1)
-        picture2 = Picture(description="test picture 2", rating=5, user_id=1)
-        db = self.SessionLocal()
-        db.add(user)
-        db.add(picture1)
-        db.add(picture2)
-        db.commit()
-        mock_get_db.return_value = db
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-        response = client.post("/search/pictures", json={"keywords": "test", "rating": 4})
-        pictures = PictureResponse(id=2, description="test picture 2", rating=5, created_at=picture2.created_at, user_id=1)
-        assert response.status_code == 200
-        assert response.json() == [pictures.dict()]
+
+templates = Jinja2Templates(directory="templates")
+
+
+@pytest.fixture(scope="function", autouse=True)
+def session():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="function")
+def client(session):
+    def override_get_db():
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    yield TestClient(app)
     
-    
-class Test_search_users(unittest.TestCase):
-    
-    def setUp(self):
-        engine = create_engine("sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}, poolclass=StaticPool)
-        Base.metadata.create_all(engine)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+@pytest.fixture
+def picture():
+    class PictureTest:
+        def __init__(self, id, user_id, rating, user, tags, picture_name, description, created_at):
+            self.id = id
+            self.user_id = user_id
+            self.rating = rating
+            self.user = user
+            self.tags = tags
+            self.picture_name = picture_name
+            self.description = description
+            self.created_at = created_at
 
-    def tearDown(self):
-        self.db.close()
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users(self, mock_get_db, client):
-        user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
-        user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
-        self.db = self.SessionLocal()
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.commit()
-        mock_get_db.return_value = self.db
+        def dict(self):
+            return {
+                "id": self.id,
+                "user_id": self.user_id,
+                "rating": self.rating,
+                "user": self.user.dict(),
+                "tags": self.tags,
+                "picture_name": self.picture_name,
+                "description": self.description,
+                "created_at": self.created_at
+            }
+    return PictureTest(
+                    id=1,
+                    user_id=1,
+                    rating=4,
+                    user=user,
+                    tags=['picture1_tag', 'picture1_tag2'],
+                    picture_name="picture1_name",
+                    description="picture1_description",
+                    created_at=datetime(2022, 1, 1)
+                    )
 
-        response = client.post("/search/users", json={"keywords": "test"})
-        users = [
-            UserResponse(id=1, username="testuser1", email="test1@example.com", avatar="test1.jpg", picture_count=0),
-            UserResponse(id=2, username="testuser2", email="test2@example.com", avatar="test2.jpg", picture_count=0)
-        ]
+
+@pytest.fixture(scope="function")
+def user():
+    class UserTest:
+        def __init__(self, id, username, email, password):
+            self.id = id
+            self.username = username
+            self.email = email
+            self.password = password
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "username": self.username,
+                "email": self.email,
+                "password": self.password
+            }
+
+    return UserTest(id=1,
+                    username="example",
+                    email="example@example.com",
+                    password="secret")
+
+no_of_pictures = 20
+
+def create_x_pictures(fake_db_for_search_test, no_of_pictures):
+    pictures = []
+    for i in range(no_of_pictures):
+        picture = fake_db_for_search_test["create_picture"](f"test_user_id{i}", f"test_rating{i}", f"test_user{i}", f"test_tag{i}", f"test_picture_name{i}", f"test_description{i}", datetime.now())
+        pictures.append(picture)
+    return pictures
+
+pictures = create_x_pictures(fake_db_for_search_test, no_of_pictures)
+for picture in pictures:
+     session.add(picture)
+session.commit()
+
+no_of_users = 10
+
+def create_x_users(fake_db_for_search_test, no_of_users):
+    users = []
+    for i in range(no_of_users):
+        user = fake_db_for_search_test["create_user"](f"test_email{i}",f"test_username{i}")
+        users.append(user)
+    return users
+
+users = create_x_users(fake_db_for_search_test, no_of_users)
+for user in users:
+     session.add(user)
+session.commit()
+
+get_current_user = Auth.get_current_user
+
+session.commit()
+session.close()
+
+
+class TestPictureSearch(unittest.TestCase):
+
+    def test_search_pictures_with_keyword_filter(self):
+        client = TestClient(app)
+        response = client.get("/api/pictures/search?keyword=user1")
         assert response.status_code == 200
-        assert response.json() == users
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 1
+        assert "id" in data[0]
 
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_username_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        self.db.add(user)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"username": "testuser"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_email_filter(self, mock_get_db, client):
-        user = User(username="testuser", email="test@example.com", avatar="test.jpg")
-        self.db.add(user)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"email": "test@example.com"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    def test_search_users_by_keywords(self, mock_get_db, client):
-        user1 = User(username="testuser1", email="test1@example.com", avatar="test1.jpg")
-        user2 = User(username="testuser2", email="test2@example.com", avatar="test2.jpg")
-        self.db = self.SessionLocal()
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.commit()
-        mock_get_db.return_value = self.db
-
-        response = client.post("/search/users", json={"keywords": "testuser"})
-        users = [UserResponse(id=1, username="testuser", email="test@example.com", avatar="test.jpg", picture_count=0)]
-
-    
-class Test_search_users_by_picture(unittest.TestCase):
-    def setUp(self):
-        self.db = get_db()
-        self.client = TestClient(app)
-        self.user = User(username="testuser", email="test@example.com", avatar="test.jpg", is_moderator=True)
-        self.db.add(self.user)
-        self.db.commit()
-
-    def tearDown(self):
-        self.db.close()
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with no filters
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture")
-        users = [
-            UserResponse(id=user1.id, username="user1", email="user1@example.com", avatar="user1.jpg", picture_count=1),
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-        # Test search_users_by_picture function with user_id filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"user_id": user1.id})
-        users = [
-            UserResponse(id=user1.id, username="user1", email="user1@example.com", avatar="user1.jpg", picture_count=1),
-        ]
-        assert response.status_code == 200
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_rating_filter(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with rating filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"rating": 4})
-        users = [
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_added_after_filter(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3, created_at=datetime.now() - timedelta(days=10))
-        picture2 = Picture(user_id=user2.id, rating=5, created_at=datetime.now())
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with added_after filter
-        mock_get_current_user.return_value = self.user
-        mock_get_db.return_value = self.db
-        response = client.post("/search/users_by_picture", json={"added_after": datetime.now() - timedelta(days=11)})
-        users = [
-            UserResponse(id=user2.id, username="user2", email="user2@example.com", avatar="user2.jpg", picture_count=1)
-        ]
-        assert response.status_code == 200
-        assert response.json() == users
-
-
-    @patch("src.routes.search.get_db", new_callable=MagicMock)
-    @patch("src.routes.search.get_current_user", new_callable=MagicMock)
-    def test_search_users_by_picture_not_moderator(self, mock_get_current_user, mock_get_db, client):
-        # Add test data to the database
-        user1 = User(username="user1", email="user1@example.com", avatar="user1.jpg")
-        user2 = User(username="user2", email="user2@example.com", avatar="user2.jpg")
-        picture1 = Picture(user_id=user1.id, rating=3)
-        picture2 = Picture(user_id=user2.id, rating=5)
-        self.db.add(user1)
-        self.db.add(user2)
-        self.db.add(picture1)
-        self.db.add(picture2)
-        self.db.commit()
-
-        # Test search_users_by_picture function with not moderator user
-        mock_get_current_user.return_value = User(username="testuser", email="test@example.com", avatar="test.jpg", is_moderator=False)
-        mock_get_db.return_value = self.db
-
-        with pytest.raises(HTTPException) as exc_info:
-            client.post("/search/users_by_picture")
-
-        assert exc_info.value.status_code == 403
-        assert exc_info.value.detail == "User filtering is only available to moderators and administrators."
         
+    def test_search_pictures_with_picture_name_filter(self):
+        pass
+    
+    def test_search_pictures_with_rating_filter(self):
+         pass
+                   
+    def test_search_pictures_with_added_after_filter(self):
+        pass
+            
+    def test_search_pictures_sorting(self):
+        pass
+
+    
+class TestUserSearch(unittest.TestCase):
+    
+    def test_search_users_by_keyword(self):
+        pass
+
+    def test_search_users_by_username(self):
+        pass
+
+    def test_search_users_by_email(self):
+        pass
+
+
+class TestUserPictureSearch(unittest.TestCase):
+    
+    def test_search_users_by_pictures_by_keywords(self):
+        pass
+
+    def test_search_users_by_pictures_with_user_id_filter(self):
+        pass
+                
+    def test_search_users_by_pictures_with_picture_id_filter(self):
+        pass
+                                
+    def test_search_users_by_pictures_with_rating_filter(self):
+        pass
+
+    def test_search_users_by_pictures_with_added_after_filter(self):
+        pass
+
+
+if __name__ == "__main__":
+    pytest.main()

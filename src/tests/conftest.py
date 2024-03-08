@@ -3,11 +3,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.templating import Jinja2Templates
+from datetime import datetime
 from PIL import Image
 from io import BytesIO
 
 from main import app
-from src.database.models import Base, User
+from src.database.models import Base, User, Picture
 from src.database.db import get_db
 from src.services.auth import auth_service
 from faker import Faker
@@ -186,8 +187,6 @@ def fake_db_for_message_test():
     db["get_messages_for_user"] = get_messages_for_user
 
     return db
-
-
 @pytest.fixture(scope="module")
 def mock_picture(width=250, height=250, color=(255, 0, 0)):
     """
@@ -208,3 +207,42 @@ def mock_picture(width=250, height=250, color=(255, 0, 0)):
     image_bytes_io.seek(0)
 
     return image_bytes_io
+
+def fake_db_for_search_test():
+    '''
+    This fixture is used to fake db for search testing
+    '''
+    db = {"pictures": {}, "users": {}, "next_picture_id": 1, "next_user_id": 1}
+    def create_picture(user_id, rating, user, tags, picture_name, description, created_at):
+        
+            picture_id = db["next_picture_id"]
+            db["pictures"][picture_id] = {
+                "id": picture_id,
+                "user_id": user_id,
+                "rating": rating,
+                "user": user.dict(),
+                "tags": tags,
+                "picture_name": picture_name,
+                "description": description,
+                "created_at": created_at
+            }
+            db["next_picture_id"] += 1
+            # Create a Picture object and add it to the database session
+            picture = Picture(id=picture_id,user_id=user_id, rating=rating, user=user.dict(), tags=tags, picture_name=picture_name, description=description, created_at=created_at)
+            db["pictures"][picture_id] = picture
+            return picture
+
+    db["create_picture"] = create_picture
+    
+    def create_user(email, username):
+        user_id = db["next_user_id"]
+        db["users"][user_id] = {
+            "id": user_id,
+            "email": email,
+            "username": username
+        }
+        db["next_user_id"] += 1
+        return db["users"][user_id]
+    
+    db["create_users"] = create_user
+    return db

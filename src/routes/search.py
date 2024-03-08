@@ -15,7 +15,7 @@ get_current_user = Auth.get_current_user
 
 
 router = APIRouter()
-    
+
 
 def search_pictures(search_params: PictureSearch, rating: Optional[int] = None, added_after: Optional[datetime] = None, sort_by: Optional[str] = "created_at", sort_order: Optional[str] = "desc", db: Session = Depends(get_db)) -> List[PictureResponse]:
     picture_search_service = PictureSearchService(db)
