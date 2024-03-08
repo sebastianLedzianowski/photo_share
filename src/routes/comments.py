@@ -82,3 +82,12 @@ async def react_to_comment(
         db: Session = Depends(get_db)
 ):
     return await repository_comments.add_reaction_to_comment(comment_id, reaction, current_user, db)
+
+
+@router.delete("/reactions/{reaction}")
+async def remove_reaction(
+        comment_id: int,
+        current_user: User = Depends(auth_service.get_current_user),
+        db: Session = Depends(get_db)
+):
+    return await repository_comments.remove_reaction_from_comment(comment_id, current_user, db)
