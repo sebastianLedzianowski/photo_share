@@ -4,7 +4,7 @@ from src.database.models import Picture, User
 from fastapi import HTTPException
 
 
-async def upload_picture(url: str, version: str, picture_name: str, user: User, db: Session) -> Picture:
+async def upload_picture(url: str, version: str, public_id: str, user: User, qr: str, db: Session) -> Picture:
     """
     Asynchronously uploads a picture to the database.
 
@@ -15,13 +15,14 @@ async def upload_picture(url: str, version: str, picture_name: str, user: User, 
     Parameters:
     - url (str): The URL of the picture to upload.
     - user (User): The user object associated with the picture.
+    - qr (str): The URL for QR code of original picture
     - db (Session): The SQLAlchemy session used to interact with the database.
 
     Returns:
     - Picture: The newly uploaded Picture object.
     """
-    converted_picture_name = f"v{version}/{picture_name}"
-    picture = Picture(picture_url=url, user_id=user.id, picture_name=converted_picture_name)
+    converted_picture_name = f"v{version}/{public_id}"
+    picture = Picture(picture_url=url, user_id=user.id, picture_name=converted_picture_name, qr_code_original_picture=qr)
     db.add(picture)
     db.commit()
     db.refresh(picture)

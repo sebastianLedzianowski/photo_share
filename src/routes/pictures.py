@@ -9,6 +9,7 @@ from src.database.models import User, Picture
 from src.schemas import PictureDB, PictureEdit
 from src.repository import pictures as repository_pictures
 from src.services.auth import auth_service
+from src.services.qr import generate_qr_and_upload_to_cloudinary
 from src.conf.cloudinary import configure_cloudinary, generate_random_string
 
 
@@ -36,20 +37,19 @@ async def upload_picture(
     Returns:
     - The URL of the uploaded picture as a PictureDB instance.
     """
-    configure_cloudinary()
-    random_string = generate_random_string()
 
     try:
+        configure_cloudinary()
+        picture_name = generate_random_string()
 
-        picture_name = f'picture/{random_string}'
-        picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, overwrite=True)
-
+        picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
         version = picture.get('version')
-        picture_name = picture.get('public_id')
 
-        url = cloudinary.CloudinaryImage(picture_name).build_url(version=version)
+        url = cloudinary.CloudinaryImage(picture['public_id']).build_url(version=version)
+        qr = await generate_qr_and_upload_to_cloudinary(url=url, picture_name=picture_name, version=version)
 
-        picture_url = await repository_pictures.upload_picture(url=url, version=version, picture_name=picture_name, user=current_user, db=db)
+        picture_url = await repository_pictures.upload_picture(url=url, version=version, public_id=picture['public_id'], user=current_user, qr=qr, db=db)
+
         return picture_url
 
     except Exception as e:
