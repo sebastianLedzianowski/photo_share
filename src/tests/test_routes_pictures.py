@@ -23,12 +23,12 @@ def test_upload_picture(user, session, client, mock_picture):
 
     mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.post(
             "/api/pictures/upload",
             headers={
-                'accept': 'application/json',
+                "accept": "application/json",
                 "Authorization": f"Bearer {new_user["access_token"]}"
             },
             files=mock_picture1
@@ -51,7 +51,7 @@ def test_get_all_pictures(user, session, client, fake_db_for_pictures_test):
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.get("/api/pictures/")
         data = response.json()
@@ -76,7 +76,7 @@ def test_get_one_picture_found(user, session, client, fake_db_for_pictures_test)
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.get(f"/api/pictures/{no_to_get}")
         data = response.json()
@@ -97,7 +97,7 @@ def test_get_one_picture_not_found(user, session, client, fake_db_for_pictures_t
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.get(f"api/pictures/{no_to_get}")
 
@@ -114,12 +114,12 @@ def test_update_picture_found(user, session, client, mock_picture, fake_db_for_p
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.put(
             f"/api/pictures/{no_to_update}",
             headers={
-                'accept': 'application/json',
+                "accept": "application/json",
                 "Authorization": f"Bearer {new_user["access_token"]}"
             },
             files=mock_picture1
@@ -143,12 +143,12 @@ def test_update_picture_not_found(user, session, client, mock_picture, fake_db_f
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.put(
             f"/api/pictures/{no_to_update}",
             headers={
-                'accept': 'application/json',
+                "accept": "application/json",
                 "Authorization": f"Bearer {new_user["access_token"]}"
             },
             files=mock_picture1
@@ -167,12 +167,12 @@ def test_delete_picture_found(user, session, client, fake_db_for_pictures_test):
         print("Picture: ", picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.delete(
             f"/api/pictures/{no_to_delete}",
             headers={
-                'accept': 'application/json',
+                "accept": "application/json",
                 "Authorization": f"Bearer {new_user["access_token"]}"
             }
         )
@@ -194,12 +194,12 @@ def test_delete_picture_not_found(user, session, client, fake_db_for_pictures_te
         session.add(picture)
     session.commit()
 
-    with patch.object(auth_service, 'r') as r_mock:
+    with patch.object(auth_service, "r") as r_mock:
         r_mock.get.return_value = None
         response = client.delete(
             f"/api/pictures/{no_to_delete}",
             headers={
-                'accept': 'application/json',
+                "accept": "application/json",
                 "Authorization": f"Bearer {new_user["access_token"]}"
             }
         )
