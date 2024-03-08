@@ -48,21 +48,22 @@ async def remove_comment(comment_id: int, user: User, db: Session) -> Union[dict
 
 
 async def add_reaction_to_comment(comment_id: int, reaction: str, user: User, db: Session):
-    async def add_reaction_to_comment(comment_id: int, reaction: str, user: User, db: Session):
-        reaction_record = db.query(Reaction).filter(Reaction.comment_id == comment_id).first()
-        if not reaction_record:
-            new_reaction = Reaction(comment_id=comment_id, data={reaction: [user.id]})
-            db.add(new_reaction)
+    reaction_record = db.query(Reaction).filter(Reaction.comment_id == comment_id).first()
+    if not reaction_record:
+        new_reaction = Reaction(comment_id=comment_id, data={reaction: [user.id]})
+        db.add(new_reaction)
+    else:
+        reaction_data = reaction_record.data
+        reaction_data_copy = reaction_data.copy()
+        for react, users in reaction_data_copy.items():
+            if user.id in users:
+                users.remove(user.id)
+            if not users:
+                del reaction_data[react]
+        if reaction not in reaction_data:
+            reaction_data[reaction] = [user.id]
         else:
-            reaction_data = reaction_record.data
-            users_id = [user_id for users in reaction_data.values() for user_id in users]
-            if user.id in users_id:
-                return {"message": "User already reacted to the comment"}
-            if reaction not in reaction_data:
-                reaction_data[reaction] = [user.id]
-            else:
-                reaction_data[reaction].append(user.id)
-            db.query(Reaction).filter(Reaction.comment_id == comment_id).update({"data": reaction_data})
-        db.commit()
-        return {"message": "The reaction was created"}
-
+            reaction_data[reaction].append(user.id)
+        db.query(Reaction).filter(Reaction.comment_id == comment_id).update({"data": reaction_data})
+    db.commit()
+    return {"message": f"The reaction was created"}
