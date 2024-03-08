@@ -19,17 +19,16 @@ import faker
 
 from src.routes.search import search_pictures, search_users, search_users_by_picture
 from src.services.search import PictureSearchService, UserSearchService, UserPictureSearchService
-from src.tests.conftest import client, session
 from src.database.models import Picture, Tag, User
 from src.database.db import get_db, SessionLocal
-from src.schemas import PictureResponse, PictureSearch, UserResponse
+from src.schemas import PictureResponse, PictureSearch, UserResponse, UserSearch
 from src.services.auth import Auth
-from src.tests.conftest import fake_db_for_search_test
+from src.tests.conftest import fake_db_for_search_test, fake, engine, TestingSessionLocal, session
+from main import app
 
 
-app = FastAPI()
+client = TestClient(app)
 
-fake = faker.Faker()
 
 def create_mock_picture(id):
     return {
@@ -38,7 +37,7 @@ def create_mock_picture(id):
         "rating": fake.random_int(1, 5),
         "user": {
             "id": fake.random_int(1, 10),
-            "username": fake.username(),
+            "username": fake.user_name(),
             "email": fake.email()
         },
         "tags": [fake.word(), fake.word()],
@@ -49,7 +48,7 @@ def create_mock_picture(id):
 def create_mock_user(id):
     return {
         "id": id,
-        "username": fake.username(),
+        "username": fake.user_name(),
         "email": fake.email()
     }
 
@@ -141,8 +140,8 @@ class TestUserSearch(unittest.TestCase):
     def test_search_users_by_keyword(self):
         with TestClient(app) as client:
             with get_db() as db:
-                service = PictureSearchService(db)
-                search_params = PictureSearch(keywords="nature", tags=["landscape"])
+                service = UserSearchService(db)
+                search_params = UserSearch(keywords="nature", tags=["landscape"])
                 result = service.search_pictures(search_params, rating=4, added_after=datetime(2022, 1, 1), sort_by="created_at", sort_order="desc")
                 self.assertIsInstance(result, list)
                 response = client.post("/users/search", json={"search_params": {...}})
