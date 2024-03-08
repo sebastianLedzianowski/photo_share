@@ -102,9 +102,8 @@ class Reaction(Base):
 
     Attributes:
         id (int): Primary key for the like.
-        user_id (int): Foreign key referencing the id of the user who liked the comment.
         comment_id (int): Foreign key referencing the id of the liked comment.
-        user (User): Relationship with the User model representing the user who liked the comment.
+        data (json): Dict of reactions with lists of users_id as values for a given reaction.
         comment (Comment): Relationship with the Comment model representing the liked comment.
     """
     __tablename__ = "reactions"
