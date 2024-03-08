@@ -2,19 +2,26 @@
 
 {% block content %}
 
-{% for error in errors %}
-    <p style="color: red">{{ error }}</p>
-{% endfor %}
-<form action="/login" method="post">
-    <p>
-        <p><label for="">Email</label></p>
-        <input type="email" name="username" value="{{ username }}" required>
-    </p>
-    <p>
-        <p><label for="">Password</label></p>
-        <input type="password" name="password" value="{{ password }}" required>
-    </p>
-    <input type="submit" value="Submit">
-</form>
+    {% for error in errors %}
+        <p style="color: red">{{ error }}</p>
+    {% endfor %}
+
+    <div class="container">
+        <form action="/login" method="post">
+                <p><label for="email">Email</label></p>
+
+            <label>
+                <input type="email" required class="form-control" name="email" aria-describedby="emailhelp">
+            </label>
+
+            <p><label for="">Password</label></p>
+
+            <label>
+                <input type="password" required class="form-control" name="password">
+            </label>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
 
 {% endblock %}
