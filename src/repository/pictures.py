@@ -4,7 +4,7 @@ from src.database.models import Picture, User
 from fastapi import HTTPException
 
 
-async def upload_picture(url: str, version: str, picture_name: str,  user: User, db: Session) -> Picture:
+async def upload_picture(url: str, version: str, picture_name: str, user: User, db: Session) -> Picture:
     """
     Asynchronously uploads a picture to the database.
 
@@ -128,7 +128,7 @@ async def upload_edited_picture(picture, edited_url, picture_id, db: Session) ->
     - HTTPException: If there is an issue committing the changes to the database.
     """
 
-    picture.picture_edited_url=edited_url
+    picture.picture_edited_url = edited_url
     db.commit()
 
     return edited_url
@@ -151,7 +151,6 @@ async def validate_edit_parameters(picture_edit):
     Raises:
     - HTTPException: If any of the parameters are invalid or conflicting.
     """
-
 
     try:
         if picture_edit.improve != "0":
@@ -195,11 +194,12 @@ async def validate_edit_parameters(picture_edit):
 
     try:
         if picture_edit.gen_replace != "from_null;to_null" and picture_edit.gen_remove != "prompt_null":
-            raise HTTPException(status_code=400, detail="You can only specify either gen_replace or gen_remove, not both.")
+            raise HTTPException(status_code=400,
+                                detail="You can only specify either gen_replace or gen_remove, not both.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
-    
+
+
 async def parse_transform_effects(picture_edit):
     """
     Parse the transformation effects based on the provided parameters for editing a picture.
@@ -212,7 +212,8 @@ async def parse_transform_effects(picture_edit):
     """
 
     transformation = [
-        {'effect': f"gen_replace:{picture_edit.gen_replace}"} if picture_edit.gen_replace != "from_null;to_null" else None,
+        {
+            'effect': f"gen_replace:{picture_edit.gen_replace}"} if picture_edit.gen_replace != "from_null;to_null" else None,
         {'effect': f"gen_remove:{picture_edit.gen_remove}"} if picture_edit.gen_remove != "prompt_null" else None,
         {'effect': f"improve:outdoor:{picture_edit.improve}"} if picture_edit.improve != "0" else None,
         {'effect': f"contrast:{picture_edit.contrast}"} if picture_edit.contrast != "0" else None,
