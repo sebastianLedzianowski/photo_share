@@ -35,6 +35,13 @@ class UserResponse(BaseModel):
     detail: str = "User successfully created"
 
 
+class UserSearch(BaseModel):
+    id: Optional[List[int]] = None
+    username: Optional[List[str]] = None
+    email: Optional[List[str]] = None
+    keywords: Optional[List[str]] = None
+
+
 class UserUpdateName(BaseModel):
     username: str = Field(min_length=5, max_length=16)
 
@@ -104,8 +111,13 @@ class PictureResponse(PictureBase):
 
 
 class PictureSearch(BaseModel):
-    keywords: Optional[str] = None
+    keywords: Optional[List[str]] = None
     tags: Optional[List[str]] = None
+    id: Optional[List[int]] = None
+    picture_name: Optional[List[str]] = None
+    rating: Optional[List[int]] | None
+    description: Optional[str] | None
+    created_at: Optional[datetime] = None
 
 
 class MessageBase(BaseModel):
