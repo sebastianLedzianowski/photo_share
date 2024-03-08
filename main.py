@@ -10,7 +10,7 @@ from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin
+from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions
 
 from src.database.db import get_db
 from src.database.models import User
@@ -40,12 +40,12 @@ app.include_router(auth.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(search.router, prefix='/api')
-app.include_router(comments.router, prefix='/api')
-app.include_router(tags.router, prefix='/api')
 app.include_router(pictures.router, prefix='/api')
-app.include_router(admin.router, prefix='/api')
 app.include_router(descriptions.router, prefix='/api')
-
+app.include_router(tags.router, prefix='/api')
+app.include_router(comments.router, prefix='/api')
+app.include_router(reactions.router, prefix='/api')
+app.include_router(admin.router, prefix='/api')
 
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
