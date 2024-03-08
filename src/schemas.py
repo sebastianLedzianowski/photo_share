@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
+from enum import Enum
 
 
 class UserModel(BaseModel):
@@ -224,3 +225,11 @@ class PictureEdit(BaseModel):
     redeye: bool = False
     gen_replace: str = "from_null;to_null"
     gen_remove: str = "prompt_null"
+
+
+class ReactionName(str, Enum):
+    like = "like"
+    love = "love"
+    wow = "wow"
+    haha = "haha"
+    dislike = "dislike"

@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
+from PIL import Image
+from io import BytesIO
 
 from main import app
 from src.database.models import Base, User, Picture
@@ -185,7 +187,26 @@ def fake_db_for_message_test():
     db["get_messages_for_user"] = get_messages_for_user
 
     return db
+@pytest.fixture(scope="module")
+def mock_picture(width=250, height=250, color=(255, 0, 0)):
+    """
+    Create a mock picture.
 
+    Args:
+    - width (int): Width of the picture.
+    - height (int): Height of the picture.
+    - color (tuple): RGB color tuple for the picture background.
+
+    Returns:
+    - BytesIO: BytesIO object containing the mock picture.
+    """
+
+    image = Image.new("RGB", (width, height), color)
+    image_bytes_io = BytesIO()
+    image.save(image_bytes_io, format="PNG")
+    image_bytes_io.seek(0)
+
+    return image_bytes_io
 
 def fake_db_for_search_test():
     '''

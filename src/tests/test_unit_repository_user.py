@@ -9,7 +9,8 @@ from src.repository.users import (
     create_user,
     update_token,
     confirmed_email,
-    update_avatar
+    update_avatar,
+    get_user_by_username
 )
 
 

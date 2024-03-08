@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    {% for error in errors %}
+        <p style="color: red">{{ error }}</p>
+    {% endfor %}
+
+    <div class="container">
+        <form action="/login" method="post">
+                <p><label for="email">Email</label></p>
+
+            <label>
+                <input type="email" required class="form-control" name="email" aria-describedby="emailhelp">
+            </label>
+
+            <p><label for="">Password</label></p>
+
+            <label>
+                <input type="password" required class="form-control" name="password">
+            </label>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+
+{% endblock %}

@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 import pickle
 
+from starlette.requests import Request
+
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
@@ -21,8 +23,8 @@ REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
 SECRET_KEY = get_secret("SECRET_KEY")
 ALGORITHM = get_secret("ALGORITHM")
 
-class Auth:
 
+class Auth:
     """
     Authentication service class.
 
@@ -184,6 +186,15 @@ class Auth:
         else:
             user = pickle.loads(user)
         return user
+
+    async def get_current_user_optional(self, request: Request, db: Session = Depends(get_db)):
+        refresh_token = request.cookies.get("refresh_token", None)
+        if refresh_token:
+            user_email = await auth_service.decode_refresh_token(refresh_token)
+            user = db.query(User).filter(User.email == user_email).first()
+            return user
+
+        return None
 
     def create_email_token(self, data: Dict[str, Union[str, int]]) -> str:
         """

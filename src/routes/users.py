@@ -12,8 +12,7 @@ from src.repository import users as repository_users
 from src.repository.users import get_user_by_id, list_all_users, update_user_name, delete_user, get_user_by_username
 from src.services.auth import auth_service
 from src.schemas import UserDb, UserUpdateName
-from src.conf.cloudinary import configure_cloudinary
-
+from src.conf.cloudinary import configure_cloudinary, generate_random_string
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -50,9 +49,10 @@ async def update_avatar_user(file: UploadFile = File(),
         UserDb: The updated user profile.
     """
     configure_cloudinary()
+    random_string = generate_random_string()
 
-    r = cloudinary.uploader.upload(file.file, public_id=f'contact_book/{current_user.email}', overwrite=True)
-    src_url = cloudinary.CloudinaryImage(f'contact_book/{current_user.email}') \
+    r = cloudinary.uploader.upload(file.file, public_id=f'avatars/{random_string}', overwrite=True)
+    src_url = cloudinary.CloudinaryImage(f'avatars/{random_string}') \
         .build_url(width=250, height=250, crop='fill', version=r.get('version'))
     user = await repository_users.update_avatar(current_user.email, src_url, db)
     return user
