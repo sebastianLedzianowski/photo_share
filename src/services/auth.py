@@ -147,19 +147,6 @@ class Auth:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
 
     async def get_current_user(self, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Dict:
-        """
-        Get the current user from the token.
-
-        Args:
-            token (str): The access token.
-            db (Session): SQLAlchemy database session.
-
-        Returns:
-            Dict: The user data.
-
-        Raises:
-            HTTPException: If validation fails or user is not found.
-        """
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -176,6 +163,7 @@ class Auth:
                 raise credentials_exception
         except JWTError as e:
             raise credentials_exception
+        
         user = self.r.get(f"user:{email}")
         if user is None:
             user = await repository_users.get_user_by_email(email, db)
@@ -185,6 +173,10 @@ class Auth:
             self.r.expire(f"user:{email}", 900)
         else:
             user = pickle.loads(user)
+
+        if user.ban_status:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You have been banned")
+
         return user
 
     async def get_current_user_optional(self, request: Request, db: Session = Depends(get_db)):

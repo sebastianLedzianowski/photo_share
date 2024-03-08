@@ -9,7 +9,7 @@ import cloudinary.uploader
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
-from src.repository.users import get_user_by_id, list_all_users, update_user_name, delete_user, get_user_by_username
+from src.repository.users import get_user_by_id, list_all_users, update_user_name, ban_user, get_user_by_username
 from src.services.auth import auth_service
 from src.schemas import UserDb, UserUpdateName
 from src.conf.cloudinary import configure_cloudinary, generate_random_string
@@ -103,26 +103,32 @@ async def update_user_name_route(user_id: int,
     return updated_user
 
 
-@router.post('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_name_route(user_id: int,
-                                 db: Session = Depends(get_db)
-                                 ):
-    """
-    Asynchronously deletes a specific user identified by their user ID from the database.
 
-    This endpoint deletes the user with the specified `user_id` from the database. Upon successful deletion,
-    a confirmation message is returned. If the user does not exist, an HTTP 404 error is raised.
+@router.post("/ban/{user_id}")
+async def ban_user_route(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
+    """
+    Ban a specific user identified by their user ID.
+
+    This endpoint bans the user specified by `user_id`. It sets the `ban_status` flag for the user to True,
+    effectively banning them from accessing certain features of the application.
 
     Args:
-        user_id (int): The unique identifier of the user to delete.
-        db (Session): The database session dependency injected by FastAPI.
+        user_id (int): The unique identifier of the user to ban.
+        db (Session): The SQLAlchemy database session used to execute the ban operation.
+        current_user (User): The current authenticated user. Must be an admin.
 
     Returns:
-        dict: A confirmation message indicating successful deletion.
-    """
-    await delete_user(user_id=user_id, db=db)
-    return {'message': 'User successfully deleted'}
+        str: Confirmation message indicating successful ban.
 
+    Raises:
+        HTTPException: A 404 error if no user with the specified ID exists.
+                      A 403 error if the current user is not authorized to ban the account.
+    """
+    try:
+        await ban_user(user_id, db, current_user)
+        return {"message": "User has been banned successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/name/{username}", response_model=UserDb)
 async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:
