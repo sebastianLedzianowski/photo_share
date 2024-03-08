@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 import pickle
 
+from starlette.requests import Request
+
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
