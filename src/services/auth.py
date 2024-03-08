@@ -187,6 +187,15 @@ class Auth:
             user = pickle.loads(user)
         return user
 
+    async def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
+        refresh_token = request.cookies.get("refresh_token", None)
+        if refresh_token:
+            user_email = await auth_service.decode_refresh_token(refresh_token)
+            user = db.query(User).filter(User.email == user_email).first()
+            return user
+
+        return None
+
     def create_email_token(self, data: Dict[str, Union[str, int]]) -> str:
         """
         Create an email token.

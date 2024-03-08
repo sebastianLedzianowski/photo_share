@@ -49,7 +49,6 @@ app.include_router(admin.router, prefix='/api')
 app.include_router(descriptions.router, prefix='/api')
 
 
-
 REDIS_HOST = get_secret("REDIS_HOST")
 REDIS_PORT = get_secret("REDIS_PORT")
 REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
