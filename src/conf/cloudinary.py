@@ -1,5 +1,7 @@
 import cloudinary
 from src.services.secrets_manager import get_secret
+import random
+import string
 
 CLOUDINARY_NAME = get_secret("CLOUDINARY_NAME")
 CLOUDINARY_API_KEY = get_secret("CLOUDINARY_API_KEY")
@@ -16,3 +18,9 @@ def configure_cloudinary():
             )
 
     return config
+
+
+def generate_random_string(length=30):
+    """Generate a random alpha-numeric string of the specified length."""
+    letters_and_digits = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters_and_digits) for _ in range(length))

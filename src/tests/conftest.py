@@ -3,9 +3,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.templating import Jinja2Templates
+from PIL import Image
+from io import BytesIO
 
 from main import app
-from src.database.models import Base, User
+from src.database.models import Base, User, Picture
 from src.database.db import get_db
 from src.services.auth import auth_service
 from faker import Faker
@@ -184,3 +186,54 @@ def fake_db_for_message_test():
     db["get_messages_for_user"] = get_messages_for_user
 
     return db
+
+@pytest.fixture(scope="function")
+def fake_db_for_pictures_test():
+    '''
+    This fixture is used to fake db for pictures testing
+    '''
+    # Initialize the fake database structure
+    db = {"pictures": {}, "next_picture_id": 1}
+
+    def create_picture(picture_url, description, created_at):
+
+        picture_id = db["next_picture_id"]
+        db["pictures"][picture_id] = {
+            "id": picture_id,
+            "picture_url": picture_url,
+            "description": description,
+            "created_at": created_at,
+        }
+        db["next_picture_id"] += 1
+        # Create a Picture object and add it to the database session
+        picture = Picture(id=picture_id, picture_url=picture_url, description=description, created_at=created_at)
+        db["pictures"][picture_id] = picture
+        return picture
+
+    db["create_picture"] = create_picture
+
+
+    return db
+
+
+@pytest.fixture(scope="module")
+def mock_picture(width=250, height=250, color=(255, 0, 0)):
+    """
+    Create a mock picture.
+
+    Args:
+    - width (int): Width of the picture.
+    - height (int): Height of the picture.
+    - color (tuple): RGB color tuple for the picture background.
+
+    Returns:
+    - BytesIO: BytesIO object containing the mock picture.
+    """
+
+    image = Image.new("RGB", (width, height), color)
+    image_bytes_io = BytesIO()
+    image.save(image_bytes_io, format="PNG")
+    image_bytes_io.seek(0)
+
+    return image_bytes_io
+

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, func, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.sql.sqltypes import DateTime, Boolean
+from sqlalchemy.sql.sqltypes import DateTime, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
@@ -109,9 +109,9 @@ class Reaction(Base):
     """
     __tablename__ = "reactions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     comment_id = Column(Integer, ForeignKey('comment.id'))
-    data = Column(JSONB)
+    data = Column(JSON)
     comment = relationship('Comment', back_populates='reactions')
 
 
