@@ -3,9 +3,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.templating import Jinja2Templates
+from datetime import datetime
 
 from main import app
-from src.database.models import Base, User
+from src.database.models import Base, User, Picture
 from src.database.db import get_db
 from src.services.auth import auth_service
 from faker import Faker
@@ -191,21 +192,34 @@ def fake_db_for_search_test():
     This fixture is used to fake db for search testing
     '''
     db = {"pictures": {}, "users": {}, "next_picture_id": 1, "next_user_id": 1}
+    def create_picture(user_id, rating, user, tags, picture_name, description, created_at):
+        
+            picture_id = db["next_picture_id"]
+            db["pictures"][picture_id] = {
+                "id": picture_id,
+                "user_id": user_id,
+                "rating": rating,
+                "user": user.dict(),
+                "tags": tags,
+                "picture_name": picture_name,
+                "description": description,
+                "created_at": created_at
+            }
+            db["next_picture_id"] += 1
+            # Create a Picture object and add it to the database session
+            picture = Picture(id=picture_id,user_id=user_id, rating=rating, user=user.dict(), tags=tags, picture_name=picture_name, description=description, created_at=created_at)
+            db["pictures"][picture_id] = picture
+            return picture
 
-    def create_picture(id, user_id, rating, user, tags, picture_name, created_at):
-        picture_id = db["next_picture_id"]
-        db["pictures"][picture_id] = {
-            "id": id,
-            "user_id": user_id,
-            "rating": rating,
-            "user": user.dict(),
-            "tags": tags,
-            "picture_name":picture_name,
-            "created_at": created_at
-        }
-        db["next_user_id"] += 1
-        return db["pictures"][picture_id]
+    db["create_picture"] = create_picture
 
+    def create_x_pictures(fake_db_for_search_test, no_of_pictures):
+        pictures = []
+        for i in range(no_of_pictures):
+            picture = fake_db_for_search_test["create_picture"](f"test_user_id{i}",f"test_rating{i}",f"test_user{i}",f"test_tags{i}"f"test_picture_name{i}", f"test_description{i}", datetime.now())
+            pictures.append(picture)
+        return pictures
+    
     def create_user(email, username):
         user_id = db["next_user_id"]
         db["users"][user_id] = {
@@ -215,3 +229,13 @@ def fake_db_for_search_test():
         }
         db["next_user_id"] += 1
         return db["users"][user_id]
+    
+    def create_x_users(fake_db_for_search_test, no_of_users):
+        users = []
+        for i in range(no_of_users):
+            users = fake_db_for_search_test["create_user"](f"test_email{i}",f"test_username{i}")
+            users.append(users)
+        return users
+    
+    db["create_users"] = create_user
+    return db
