@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from src.database.db import get_db
 from src.database.models import User
-from src.schemas import CommentModel, CommentResponse, PictureDB
+from src.schemas import CommentModel, CommentResponse, PictureDB, CommentUpdate, ReactionName
 from src.repository import comments as repository_comments
 from src.services.auth import auth_service
 
@@ -52,7 +52,7 @@ async def create_comment(
 @router.put("/{comment_id}", response_model=CommentResponse)
 async def update_comment(
         comment_id: int,
-        body: CommentModel,
+        body: CommentUpdate,
         db: Session = Depends(get_db),
         current_user: User = Depends(auth_service.get_current_user)
 ):
@@ -71,3 +71,13 @@ async def remove_comment(
     if comment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
     return comment
+
+
+@router.post("/reactions/{reaction}", status_code=status.HTTP_201_CREATED)
+async def react_to_comment(
+        comment_id: int,
+        reaction: ReactionName,
+        current_user: User = Depends(auth_service.get_current_user),
+        db: Session = Depends(get_db)
+):
+    return await repository_comments.add_reaction_to_comment(comment_id, reaction, current_user, db)

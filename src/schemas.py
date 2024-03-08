@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
+from enum import Enum
 
 
 class UserModel(BaseModel):
@@ -37,6 +38,19 @@ class UserResponse(BaseModel):
 
 class UserUpdateName(BaseModel):
     username: str = Field(min_length=5, max_length=16)
+
+
+class AdminUserUpdateModel(BaseModel):
+    """
+    Schema for admin to update user data, excluding password, refresh_token and created_at fields.
+    """
+    username: Optional[str] = Field(None, min_length=5, max_length=16)
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    confirmed: Optional[bool] = None
+    admin: Optional[bool] = None
+    moderator: Optional[bool] = None
+
 
 
 class TokenModel(BaseModel):
@@ -76,7 +90,7 @@ class PictureDB(BaseModel):
         from_attributes = True
 
 
-class PictureUpdate(BaseModel):
+class PictureDescription(BaseModel):
     description: Optional[str] | None
 
 
@@ -125,12 +139,15 @@ class CommentModel(BaseModel):
     content: str = Field(min_length=1, max_length=300)
 
 
-class CommentResponse(CommentModel):
+class CommentUpdate(CommentModel):
+    updated_at: datetime | None
+
+
+class CommentResponse(CommentUpdate):
     id: int
     user_id: int
     picture_id: int
     created_at: datetime
-    updated_at: datetime | None
 
     class Config:
         from_attributes = True
@@ -196,3 +213,11 @@ class PictureEdit(BaseModel):
     redeye: bool = False
     gen_replace: str = "from_null;to_null"
     gen_remove: str = "prompt_null"
+
+
+class ReactionName(str, Enum):
+    like = "like"
+    love = "love"
+    wow = "wow"
+    haha = "haha"
+    dislike = "dislike"
