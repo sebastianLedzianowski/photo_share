@@ -212,8 +212,7 @@ async def parse_transform_effects(picture_edit):
     """
 
     transformation = [
-        {
-            'effect': f"gen_replace:{picture_edit.gen_replace}"} if picture_edit.gen_replace != "from_null;to_null" else None,
+        {'effect': f"gen_replace:{picture_edit.gen_replace}"} if picture_edit.gen_replace != "from_null;to_null" else None,
         {'effect': f"gen_remove:{picture_edit.gen_remove}"} if picture_edit.gen_remove != "prompt_null" else None,
         {'effect': f"improve:outdoor:{picture_edit.improve}"} if picture_edit.improve != "0" else None,
         {'effect': f"contrast:{picture_edit.contrast}"} if picture_edit.contrast != "0" else None,

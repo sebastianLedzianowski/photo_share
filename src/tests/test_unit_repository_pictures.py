@@ -108,7 +108,3 @@ class TestUnitRepositoryPictures(unittest.IsolatedAsyncioTestCase):
         self.session.query().filter().first.return_value = None
         result = await delete_picture(picture_id=picture.id, db=self.session)
         self.assertIsNone(result)
-
-
-if __name__ == '__main__':
-    unittest.main()

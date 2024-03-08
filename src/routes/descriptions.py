@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Type
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ async def get_all_descriptions(
         skip: int = 0,
         limit: int = 20,
         db: Session = Depends(get_db)
-):
+) -> list[str]:
     """
     Retrieve all picture descriptions from the database.
 
