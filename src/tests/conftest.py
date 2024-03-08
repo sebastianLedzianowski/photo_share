@@ -212,13 +212,6 @@ def fake_db_for_search_test():
             return picture
 
     db["create_picture"] = create_picture
-
-    def create_x_pictures(fake_db_for_search_test, no_of_pictures):
-        pictures = []
-        for i in range(no_of_pictures):
-            picture = fake_db_for_search_test["create_picture"](f"test_user_id{i}",f"test_rating{i}",f"test_user{i}",f"test_tags{i}"f"test_picture_name{i}", f"test_description{i}", datetime.now())
-            pictures.append(picture)
-        return pictures
     
     def create_user(email, username):
         user_id = db["next_user_id"]
@@ -229,13 +222,6 @@ def fake_db_for_search_test():
         }
         db["next_user_id"] += 1
         return db["users"][user_id]
-    
-    def create_x_users(fake_db_for_search_test, no_of_users):
-        users = []
-        for i in range(no_of_users):
-            users = fake_db_for_search_test["create_user"](f"test_email{i}",f"test_username{i}")
-            users.append(users)
-        return users
     
     db["create_users"] = create_user
     return db
