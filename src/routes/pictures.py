@@ -9,7 +9,7 @@ from src.database.models import User, Picture
 from src.schemas import PictureDB, PictureEdit
 from src.repository import pictures as repository_pictures
 from src.services.auth import auth_service
-from src.conf.cloudinary import configure_cloudinary
+from src.conf.cloudinary import configure_cloudinary, generate_random_string
 
 
 router = APIRouter(prefix='/pictures', tags=["pictures"])
@@ -37,10 +37,11 @@ async def upload_picture(
     - The URL of the uploaded picture as a PictureDB instance.
     """
     configure_cloudinary()
+    random_string = generate_random_string()
 
     try:
 
-        picture_name = f'picture/{current_user.email}'
+        picture_name = f'picture/{random_string}'
         picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, overwrite=True)
 
         version = picture.get('version')
@@ -130,20 +131,17 @@ async def update_picture(
 
     configure_cloudinary()
 
-    try:
+    random_string = generate_random_string()
 
-        picture = cloudinary.uploader.upload(picture.file, public_id=f'picture/{current_user.email}', overwrite=True)
+    picture = cloudinary.uploader.upload(picture.file, public_id=f'picture/{current_user.email}', overwrite=True)
 
-        url = cloudinary.CloudinaryImage(f'picture/{current_user.email}').build_url(version=picture.get('version'))
+    url = cloudinary.CloudinaryImage(f'picture/{random_string}').build_url(version=picture.get('version'))
 
-        picture_url = await repository_pictures.update_picture(picture_id=picture_id, url=url, user=current_user, db=db)
+    picture_url = await repository_pictures.update_picture(picture_id=picture_id, url=url, user=current_user, db=db)
 
-        if picture_url is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
-        return picture_url
-
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    if picture_url is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
+    return picture_url
 
 
 @router.delete("/{picture_id}", response_model=PictureDB)

@@ -66,8 +66,6 @@ class TestUnitRepositoryDescriptions(unittest.IsolatedAsyncioTestCase):
         mock_limit.all.return_value = pictures
 
         result = await get_all_descriptions(skip=0, limit=100, db=self.session)
-        print("Pictures_descriptions:", pictures_descriptions)
-        print("Result_descriptions:", result)
 
         self.assertEqual(result[0].description, pictures[0].description)
         self.assertEqual(result[1].description, pictures[1].description)
@@ -78,8 +76,6 @@ class TestUnitRepositoryDescriptions(unittest.IsolatedAsyncioTestCase):
         picture = self.picture2
         self.session.query().filter().first.return_value = picture
         result = await get_one_description(picture_id=2, db=self.session)
-        print("Result_descriptions:", result.description)
-        print("Picture_descriptions:", picture.description)
         self.assertEqual(result.description, picture.description)
         self.assertEqual(result.id, picture.id)
 
@@ -114,6 +110,7 @@ class TestUnitRepositoryDescriptions(unittest.IsolatedAsyncioTestCase):
         self.session.query().filter().first.return_value = None
         result = await delete_description(picture_id=999, db=self.session)
         self.assertIsNone(result)
+
 
 if __name__ == '__main__':
     unittest.main()

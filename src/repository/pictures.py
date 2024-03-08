@@ -86,6 +86,7 @@ async def update_picture(picture_id: int, url: str, user: User, db: Session) -> 
         picture.user_id = user.id
         picture.picture_url = url
         db.commit()
+        db.refresh(picture)
     return picture
 
 

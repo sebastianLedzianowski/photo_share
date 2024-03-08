@@ -1,165 +1,210 @@
 import pytest
-from PIL import Image
-from io import BytesIO
 from fastapi.testclient import TestClient
 from unittest.mock import patch
+from datetime import datetime
 
 from main import app
 from src.services.auth import auth_service
-from src.tests.test_routes_auth import login_user_token_created
+from src.tests.conftest import login_user_token_created, fake_db_for_pictures_test
 
 client = TestClient(app)
 
 
-def create_mock_picture(width=250, height=250, color=(255, 0, 0)):
-    """
-    Create a mock picture.
-
-    Args:
-    - width (int): Width of the picture.
-    - height (int): Height of the picture.
-    - color (tuple): RGB color tuple for the picture background.
-
-    Returns:
-    - BytesIO: BytesIO object containing the mock picture.
-    """
-
-    image = Image.new("RGB", (width, height), color)
-    image_bytes_io = BytesIO()
-    image.save(image_bytes_io, format="PNG")
-    image_bytes_io.seek(0)
-
-    return image_bytes_io
+def create_x_pictures(fake_db_for_pictures_test, no_of_pictures):
+    pictures = []
+    for i in range(no_of_pictures):
+        picture = fake_db_for_pictures_test["create_picture"](f"test_url{i}", f"test_description{i}", datetime.now())
+        pictures.append(picture)
+    return pictures
 
 
-def test_upload_picture(user, session, client):
+def test_upload_picture(user, session, client, mock_picture):
     new_user = login_user_token_created(user, session)
 
-    mock_picture = create_mock_picture()
-    mock_uploaded_file = {"picture": ("test_image.png", mock_picture, "image/png")}
+    mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
 
-    response = client.post(
-        "api/pictures/upload",
-        headers={
-            'accept': 'application/json',
-            "Authorization": f"Bearer {new_user.get('access_token')}"
-        },
-        files=mock_uploaded_file
-    )
-    assert response.status_code == 200
-    data = response.json()
-    print("DATA: ", data)
-    assert "id" in data
-    assert "picture_url" in data
-    assert "rating" in data
-    assert "created_at" in data
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.post(
+            "/api/pictures/upload",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user["access_token"]}"
+            },
+            files=mock_picture1
+        )
+        data = response.json()
 
-
-def test_get_all_pictures(user, session):
-
-    response = client.get("api/pictures/")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) > 1
-    assert "id" in data[0]
-    assert "picture_url" in data[0]
-    assert "rating" in data[0]
-    assert "created_at" in data[0]
+        assert response.status_code == 201, response.text
+        assert "id" in data
+        assert "picture_url" in data
+        assert "rating" in data
+        assert "created_at" in data
 
 
-def test_get_one_picture_found(user, session):
+def test_get_all_pictures(user, session, client, fake_db_for_pictures_test):
 
-    response = client.get("api/pictures/1")
-    assert response.status_code == 200
-    data = response.json()
-    assert "id" in data
-    assert "picture_url" in data
-    assert "rating" in data
-    assert "created_at" in data
-    assert "user_id" in data
+    no_of_pictures = 4
+
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+    session.commit()
+
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.get("/api/pictures/")
+        data = response.json()
+
+        assert response.status_code == 200, response.text
+        assert isinstance(data, list)
+        assert len(data) == no_of_pictures
+        for i in range(no_of_pictures):
+            assert data[i]["id"] == pictures[i].id
+            assert data[i]["picture_url"] == pictures[i].picture_url
+            assert data[i]["description"] == pictures[i].description
+            assert "created_at" in data[i]
+            assert "rating" in data[i]
 
 
-def test_get_one_picture_not_found(user, session, client):
+def test_get_one_picture_found(user, session, client, fake_db_for_pictures_test):
+    no_of_pictures = 4
+    no_to_get = no_of_pictures - 1
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        print(f"Test_get_one: {picture}")
+        session.add(picture)
+    session.commit()
 
-    response = client.get("api/pictures/9999")
-    assert response.status_code == 404
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.get(f"/api/pictures/{no_to_get}")
+        data = response.json()
+
+        assert response.status_code == 200, response.text
+        assert data["id"] == pictures[no_to_get-1].id
+        assert data["picture_url"] == pictures[no_to_get - 1].picture_url
+        assert data["description"] == pictures[no_to_get - 1].description
+        assert "created_at" in data
+        assert "rating" in data
 
 
-def test_update_picture_found(user, session, client):
+def test_get_one_picture_not_found(user, session, client, fake_db_for_pictures_test):
+    no_of_pictures = 4
+    no_to_get = no_of_pictures + 100
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+    session.commit()
 
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.get(f"api/pictures/{no_to_get}")
+
+        assert response.status_code == 404, response.text
+
+
+def test_update_picture_found(user, session, client, mock_picture, fake_db_for_pictures_test):
     new_user = login_user_token_created(user, session)
+    mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
+    no_of_pictures = 4
+    no_to_update = no_of_pictures - 1
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+    session.commit()
 
-    mock_picture = create_mock_picture()
-    mock_uploaded_file = {"picture": ("test_image.png", mock_picture, "image/png")}
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.put(
+            f"/api/pictures/{no_to_update}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user["access_token"]}"
+            },
+            files=mock_picture1
+        )
+        data = response.json()
 
-    response = client.put(
-        "api/pictures/1",
-        headers={
-            'accept': 'application/json',
-            "Authorization": f"Bearer {new_user.get('access_token')}"
-        },
-        files=mock_uploaded_file
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "id" in data
-    assert "picture_url" in data
-    assert "rating" in data
-    assert "created_at" in data
+        assert response.status_code == 200, response.text
+        assert "id" in data
+        assert "picture_url" in data
+        assert "rating" in data
+        assert "created_at" in data
 
 
-def test_update_picture_not_found(user, session):
-
+def test_update_picture_not_found(user, session, client, mock_picture, fake_db_for_pictures_test):
     new_user = login_user_token_created(user, session)
+    mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
+    no_of_pictures = 4
+    no_to_update = no_of_pictures + 100
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+    session.commit()
 
-    mock_picture = create_mock_picture()
-    mock_uploaded_file = {"picture": ("test_image.png", mock_picture, "image/png")}
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.put(
+            f"/api/pictures/{no_to_update}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user["access_token"]}"
+            },
+            files=mock_picture1
+        )
 
-    response = client.put(
-        "api/pictures/9999",
-        headers={
-            'accept': 'application/json',
-            "Authorization": f"Bearer {new_user.get('access_token')}"
-        },
-        files=mock_uploaded_file
-    )
-    assert response.status_code == 404
+        assert response.status_code == 404, response.text
 
 
-def test_delete_picture_found(client, session, user):
+def test_delete_picture_found(user, session, client, fake_db_for_pictures_test):
     new_user = login_user_token_created(user, session)
+    no_of_pictures = 4
+    no_to_delete = no_of_pictures - 1
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+        print("Picture: ", picture)
+    session.commit()
 
-    # with patch.object(auth_service, 'r') as r_mock:
-    #     r_mock.get.return_value = None
-
-    response = client.delete(
-        "api/pictures/1",
-        headers={
-            'accept': 'application/json',
-            "Authorization": f"Bearer {new_user.get('access_token')}"
-        }
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "id" in data
-    assert "picture_url" in data
-    assert "rating" in data
-    assert "created_at" in data
-
-
-def test_delete_picture_not_found(user, session, client):
-    new_user = login_user_token_created(user, session)
-
-    response = client.delete(
-        "api/pictures/9999",
-         headers={
-             'accept': 'application/json',
-             "Authorization": f"Bearer {new_user.get('access_token')}"
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.delete(
+            f"/api/pictures/{no_to_delete}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user["access_token"]}"
             }
-         )
-    assert response.status_code == 404
+        )
+        data = response.json()
+
+        assert response.status_code == 200, response.text
+        assert "id" in data
+        assert "picture_url" in data
+        assert "rating" in data
+        assert "created_at" in data
+
+
+def test_delete_picture_not_found(user, session, client, fake_db_for_pictures_test):
+    new_user = login_user_token_created(user, session)
+    no_of_pictures = 4
+    no_to_delete = no_of_pictures + 100
+    pictures = create_x_pictures(fake_db_for_pictures_test, no_of_pictures)
+    for picture in pictures:
+        session.add(picture)
+    session.commit()
+
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.delete(
+            f"/api/pictures/{no_to_delete}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user["access_token"]}"
+            }
+        )
+
+        assert response.status_code == 404, response.text
 
 
 if __name__ == "__main__":

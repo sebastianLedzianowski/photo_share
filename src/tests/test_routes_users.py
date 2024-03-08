@@ -17,17 +17,10 @@ def test_read_users_me(user, session, client):
     assert data["email"] == user.email
 
 
-def test_update_avatar_user(user, session, client, monkeypatch):
+def test_update_avatar_user(user, session, client, monkeypatch, mock_picture):
     new_user = login_user_token_created(user, session)
 
-    width, height = 250, 250
-    image = Image.new("RGB", (width, height), (255, 0, 0))
-
-    image_bytes_io = BytesIO()
-    image.save(image_bytes_io, format="PNG")
-    image_bytes_io.seek(0)
-
-    mock_uploaded_file = {"file": ("test_image.png", image_bytes_io, "image/png")}
+    mock_uploaded_file = {"file": ("test_image.png", mock_picture, "image/png")}
 
     response = client.patch(
         "/api/users/avatar",
