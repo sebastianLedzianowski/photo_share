@@ -29,7 +29,7 @@ def test_upload_picture(user, session, client, mock_picture):
             "/api/pictures/upload",
             headers={
                 'accept': 'application/json',
-                "Authorization": f"Bearer {new_user["access_token"]}"
+                "Authorization": f"Bearer {new_user['access_token']}"
             },
             files=mock_picture1
         )
@@ -120,7 +120,7 @@ def test_update_picture_found(user, session, client, mock_picture, fake_db_for_p
             f"/api/pictures/{no_to_update}",
             headers={
                 'accept': 'application/json',
-                "Authorization": f"Bearer {new_user["access_token"]}"
+                "Authorization": f"Bearer {new_user['access_token']}"
             },
             files=mock_picture1
         )
@@ -149,7 +149,7 @@ def test_update_picture_not_found(user, session, client, mock_picture, fake_db_f
             f"/api/pictures/{no_to_update}",
             headers={
                 'accept': 'application/json',
-                "Authorization": f"Bearer {new_user["access_token"]}"
+                "Authorization": f"Bearer {new_user['access_token']}"
             },
             files=mock_picture1
         )
@@ -173,7 +173,7 @@ def test_delete_picture_found(user, session, client, fake_db_for_pictures_test):
             f"/api/pictures/{no_to_delete}",
             headers={
                 'accept': 'application/json',
-                "Authorization": f"Bearer {new_user["access_token"]}"
+                "Authorization": f"Bearer {new_user['access_token']}"
             }
         )
         data = response.json()
@@ -200,7 +200,7 @@ def test_delete_picture_not_found(user, session, client, fake_db_for_pictures_te
             f"/api/pictures/{no_to_delete}",
             headers={
                 'accept': 'application/json',
-                "Authorization": f"Bearer {new_user["access_token"]}"
+                "Authorization": f"Bearer {new_user['access_token']}"
             }
         )
 
