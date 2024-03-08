@@ -129,7 +129,7 @@ no_of_pictures = 20
 def create_x_pictures(fake_db_for_search_test, no_of_pictures):
     pictures = []
     for i in range(no_of_pictures):
-        picture = fake_db_for_search_test["create_picture"](f"test_user_id{i}",f"test_rating{i}",f"test_user{i}",f"test_tag{i}"f"test_picture_name{i}", f"test_description{i}", datetime.now())
+        picture = fake_db_for_search_test["create_picture"](f"test_user_id{i}", f"test_rating{i}", f"test_user{i}", f"test_tag{i}", f"test_picture_name{i}", f"test_description{i}", datetime.now())
         pictures.append(picture)
     return pictures
 
