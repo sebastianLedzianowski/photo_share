@@ -1,5 +1,3 @@
-from typing import Optional
-
 import httpx
 import redis.asyncio as redis
 import uvicorn
@@ -147,7 +145,6 @@ async def login_form(request: Request, db: Session = Depends(get_db)):
 
     # Use a single point for rendering the error response
     return templates.TemplateResponse('login.html', {'request': request, 'errors': errors})
-
 
 
 if __name__ == "__main__":

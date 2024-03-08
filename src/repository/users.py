@@ -81,6 +81,7 @@ async def list_all_users(db: Session) -> List[User]:
 
     Returns:
         List[User]: A list of all user instances in the database.
+
     """
     users = db.query(User).all()
     return users
@@ -117,29 +118,34 @@ async def update_user_name(user_id: int,
     return UserDb.from_orm(user)
 
 
-async def delete_user(user_id: int,
-                      db: Session
-                      ) -> None:
+async def ban_user(user_id: int, db: Session, current_user: User) -> None:
     """
-    Asynchronously deletes a specific user identified by their user ID from the database.
+    Ban a specific user identified by their user ID.
 
-    This function searches for a user with the specified `user_id` and deletes them from the database.
+    This function searches for a user with the specified `user_id` and sets their `ban_status` flag to True.
     If no user is found with the specified ID, it raises an HTTPException with a 404 status code.
+    If the current user is not an admin, it raises an HTTPException with a 403 status code.
 
     Args:
-        user_id (int): The unique identifier of the user to delete.
-        db (Session): The database session used to execute the deletion.
+        user_id (int): The unique identifier of the user to ban.
+        db (Session): The database session used to execute the ban operation.
+        current_user (User): The current authenticated user.
 
     Returns:
-        None: Indicates successful deletion.
+        None: Indicates successful ban.
 
     Raises:
         HTTPException: A 404 error if no user with the specified ID exists.
+                      A 403 error if the current user is not authorized to ban the account.
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
+
+    if not current_user.admin:
+        raise HTTPException(status_code=403, detail="You are not authorized to ban accounts.")
+
+    user.ban_status = True
     db.commit()
 
 
@@ -198,7 +204,6 @@ async def upgrade_password(user: UserModel, new_password: str, db: Session):
     """
     user.password = auth_service.get_password_hash(new_password)
     db.commit()
-
 
 async def get_user_by_username(username: str, db: Session):
     """

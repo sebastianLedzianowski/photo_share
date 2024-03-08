@@ -147,7 +147,7 @@ class User(Base):
     confirmed = Column(Boolean, default=False)
     admin = Column(Boolean, default=False)
     moderator = Column(Boolean, default=False)
-
+    ban_status = Column(Boolean, default=False)
     pictures = relationship('Picture', back_populates='user')
     comments = relationship('Comment', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')

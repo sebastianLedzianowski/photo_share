@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import JSONResponse
 from fastapi_limiter.depends import RateLimiter
 
 from sqlalchemy.orm import Session
@@ -62,16 +63,16 @@ async def update_comment(
     return comment
 
 
-@router.delete("/{comment_id}", response_model=CommentResponse)
-async def remove_comment(
+@router.delete("/{contact_id}")
+async def remove_contact(
         comment_id: int,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth_service.get_current_user)
 ):
-    comment = await repository_comments.remove_comment(comment_id, db)
+    comment = await repository_comments.remove_comment(comment_id, current_user, db)
     if comment is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-    return comment
-
+        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"message": "You can't delete the comment."})
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "The comment deleted successfully"})
 
 @router.post("/reactions/{reaction}", status_code=status.HTTP_201_CREATED)
 async def react_to_comment(
@@ -81,3 +82,12 @@ async def react_to_comment(
         db: Session = Depends(get_db)
 ):
     return await repository_comments.add_reaction_to_comment(comment_id, reaction, current_user, db)
+
+
+@router.delete("/reactions/{reaction}")
+async def remove_reaction(
+        comment_id: int,
+        current_user: User = Depends(auth_service.get_current_user),
+        db: Session = Depends(get_db)
+):
+    return await repository_comments.remove_reaction_from_comment(comment_id, current_user, db)
