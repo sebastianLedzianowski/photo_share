@@ -1,4 +1,4 @@
-from src.tests.conftest import login_user_confirmed_true_and_hash_password
+from src.tests.conftest import login_user_confirmed_true_and_hash_password, login_as_admin
 from src.tests.test_routes_auth import login_user_token_created
 from PIL import Image
 from io import BytesIO
@@ -17,17 +17,10 @@ def test_read_users_me(user, session, client):
     assert data["email"] == user.email
 
 
-def test_update_avatar_user(user, session, client, monkeypatch):
+def test_update_avatar_user(user, session, client, monkeypatch, mock_picture):
     new_user = login_user_token_created(user, session)
 
-    width, height = 250, 250
-    image = Image.new("RGB", (width, height), (255, 0, 0))
-
-    image_bytes_io = BytesIO()
-    image.save(image_bytes_io, format="PNG")
-    image_bytes_io.seek(0)
-
-    mock_uploaded_file = {"file": ("test_image.png", image_bytes_io, "image/png")}
+    mock_uploaded_file = {"file": ("test_image.png", mock_picture, "image/png")}
 
     response = client.patch(
         "/api/users/avatar",
@@ -43,18 +36,26 @@ def test_update_avatar_user(user, session, client, monkeypatch):
     assert "avatar" in data
 
 
-def test_list_all_users(client, user, session):
-    # Create a user in the database for testing
+def test_list_all_users_user(client, user, session):
     login_user_confirmed_true_and_hash_password(user, session)
-
     # Perform the GET request to list all users
     response = client.get("/api/users/all")
 
     # Validate the response
+    assert response.status_code == 401
+
+def test_list_all_users_admin(client, admin,  session):
+    # Ensure admin is correctly set up and logged in to obtain a token
+    token_details = login_user_token_created(admin, session)  # Assuming this returns a valid token for the admin
+
+    # Use the obtained token in the Authorization header
+    response = client.get("/api/users/all", headers={"Authorization": f"Bearer {token_details['access_token']}"})
+
+    # Validate the response
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 1  # Ensure at least one user is returned
-    assert data[0]["email"] == user.email  # Validate the email of the user returned
+    assert len(data) >= 1  # Ensure at least one user is returned, the admin itself
+    # Additional assertions as needed
 
 
 def test_update_user_name(client, user, session):
@@ -85,3 +86,22 @@ def test_delete_user(client, user, session):
 
     # Validate the response
     assert response.status_code == 204
+
+
+def test_read_user_by_username(user, session, client):
+    login_user_confirmed_true_and_hash_password(user, session)
+
+    response = client.get(f"/api/users/name/{user.username}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == user.username
+    assert data["email"] == user.email
+
+
+def test_read_nonexistent_user_by_username(client):
+    user_name = "nonexistent_user"
+
+    response = client.get(f"/api/users/name/{user_name}")
+
+    assert response.status_code == 404

@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Union, Callable
+from typing import Optional, Dict, Union, Callable, Literal
 
 import redis as redis
 from jose import JWTError, jwt
@@ -8,6 +8,8 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 import pickle
+
+from starlette.requests import Request
 
 from src.database.db import get_db
 from src.database.models import User
@@ -21,6 +23,7 @@ REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
 SECRET_KEY = get_secret("SECRET_KEY")
 ALGORITHM = get_secret("ALGORITHM")
 
+
 class Auth:
     """
     Authentication service class.
@@ -32,6 +35,16 @@ class Auth:
         oauth2_scheme (OAuth2PasswordBearer): OAuth2 password bearer for token retrieval.
         r (redis.Redis): Redis instance for caching user data.
     """
+
+    def __init__(self, db: Session = Depends(get_db)):
+        """
+        Initializes the Auth class with a database session.
+
+        Args:
+            db (Session): A SQLAlchemy Session instance.
+        """
+        self.db = db
+
     pwd_context = CryptContext(schemes=["bcrypt"],
                                deprecated="auto")
     SECRET_KEY = SECRET_KEY
@@ -174,6 +187,14 @@ class Auth:
             user = pickle.loads(user)
         return user
 
+    async def get_current_user_optional(self, request: Request, db: Session = Depends(get_db)):
+        refresh_token = request.cookies.get("refresh_token", None)
+        if refresh_token:
+            user_email = await auth_service.decode_refresh_token(refresh_token)
+            user = db.query(User).filter(User.email == user_email).first()
+            return user
+
+        return None
 
     def create_email_token(self, data: Dict[str, Union[str, int]]) -> str:
         """
@@ -190,44 +211,58 @@ class Auth:
         to_encode.update({"iat": datetime.utcnow(), "exp": expire})
         token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return token
-    
-    def admin_required(self, func: Callable):
-        async def wrapper(current_user: User = Depends(self.get_current_user)):
-            """
-        Decorator to restrict access to admin users only.
 
-        Parameters:
-            func (Callable): The function to be decorated.
+    async def check_user_privileges(self,
+                                    current_user: User,
+                                    required_role: str
+                                    ) -> User:
+        """
+        Checks if the current user has the required privileges.
+
+        Args:
+            current_user (User): The user object to check.
+            required_role (str): The required role ('admin' or 'moderator').
 
         Returns:
-            Callable: Decorated function with access restriction to admin users.
-            """
-            if not current_user.admin:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You are not an admin",
-                )
-            return await func(current_user=current_user)
-        return wrapper
-    
-    def moderator_required(self, func: Callable):
-        async def wrapper(current_user: User = Depends(self.get_current_user)):
-            """
-            Wrapper function to check if the current user is an admin.
+            User: The user object if the user has the required privileges.
 
-            Parameters:
-                current_user (User, optional): The current user. Defaults to Depends(self.get_current_user).
+        Raises:
+            HTTPException: If the user does not have the required privileges.
 
-            Returns:
-                Any: Result of the decorated function.
-            """
-            if not current_user.moderator:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You are not a moderator",
-                )
-            return await func(current_user=current_user)
-        return wrapper
+        Example:
+            # This method is indirectly used through the require_role factory method.
+        """
+        if required_role == "admin" and not current_user.admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: Requires admin privileges."
+            )
+        elif required_role == "moderator" and not (current_user.moderator or current_user.admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: Requires moderator privileges."
+            )
+
+        return current_user
+
+    def require_role(self, required_role: str) -> Callable:
+        """
+        A factory method that creates a dependency function for role-based access control.
+
+        Args:
+            required_role (str): The required role ('admin' or 'moderator').
+
+        Returns:
+            Callable: A dependency function that FastAPI can use to enforce role-based access control.
+
+        Example:
+            @router.get("/admin-only", dependencies=[Depends(auth.require_role("admin"))])
+            async def admin_only_route():
+                return {"message": "This is an admin-only area."}
+        """
+        async def role_checker(current_user: User = Depends(self.get_current_user)):
+            return await self.check_user_privileges(current_user, required_role)
+        return role_checker
 
     async def get_email_from_token(self, token: str) -> str:
         """
@@ -251,6 +286,5 @@ class Auth:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Invalid token for email.")
         
-
 
 auth_service = Auth()

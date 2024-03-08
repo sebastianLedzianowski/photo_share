@@ -71,7 +71,7 @@ photo_share
 │  ├─ README
 │  ├─ script.py.mako
 │  └─ versions
-│     └─ this is a long story, mate!
+│     └─ not your problem :D
 ├─ alembic.ini
 ├─ main.py
 ├─ poetry.lock
@@ -97,14 +97,18 @@ photo_share
 │  │  ├─ auth.py
 │  │  ├─ comments.py
 │  │  ├─ messages.py
+│  │  ├─ pictures.py
 │  │  ├─ pictures_oktawian.py
 │  │  ├─ search.py
 │  │  ├─ tags.py
 │  │  ├─ users.py
+│  │  ├─ users_role.py
 │  │  └─ __init__.py
 │  ├─ schemas.py
 │  ├─ services
 │  │  ├─ auth.py
+│  │  ├─ auth_admin.py
+│  │  ├─ auth_moderator.py
 │  │  ├─ email.py
 │  │  ├─ secrets_manager.py
 │  │  ├─ templates
@@ -117,17 +121,27 @@ photo_share
 │  │  └─ styles.css
 │  ├─ tests
 │  │  ├─ conftest.py
+│  │  ├─ test_access_required.py
 │  │  ├─ test_repository_tags.py
 │  │  ├─ test_routes_auth.py
 │  │  ├─ test_routes_messages.py
-│  │  ├─ test_routes_pictures_oktawian.py
+│  │  ├─ test_routes_pictures.py
 │  │  ├─ test_routes_search.py
 │  │  ├─ test_routes_users.py
+│  │  ├─ test_unit_repository_comments.py
+│  │  ├─ test_unit_repository_pictures.py
 │  │  ├─ test_unit_repository_pictures_oktawian.py
 │  │  ├─ test_unit_repository_user.py
+│  │  ├─ test_user_validate.py
 │  │  └─ __init__.py
 │  └─ __init__.py
 └─ templates
+   ├─ base.html
+   ├─ index.html
+   ├─ pictures.html
+   ├─ resetPassword.js
    ├─ reset_password.html
+   ├─ users.html
+   ├─ user_details.html
    └─ __init__.py
 ```

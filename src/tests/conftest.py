@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.templating import Jinja2Templates
+from PIL import Image
+from io import BytesIO
 
 from main import app
 from src.database.models import Base, User
@@ -21,6 +23,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 templates = Jinja2Templates(directory="templates")
 
+
 @pytest.fixture(scope="function", autouse=True)
 def session():
     Base.metadata.drop_all(bind=engine)
@@ -31,6 +34,7 @@ def session():
         yield db
     finally:
         db.close()
+
 
 @pytest.fixture(scope="function")
 def client(session):
@@ -43,6 +47,7 @@ def client(session):
     app.dependency_overrides[get_db] = override_get_db
 
     yield TestClient(app)
+
 
 @pytest.fixture(scope="function")
 def user():
@@ -60,10 +65,38 @@ def user():
                 "email": self.email,
                 "password": self.password
             }
+
     return UserTest(id=1,
                     username="example",
                     email="example@example.com",
                     password="secret")
+
+
+@pytest.fixture(scope="function")
+def admin():
+    class AdminTest:
+        def __init__(self, id, username, email, password, admin):
+            self.id = id
+            self.username = username
+            self.email = email
+            self.password = password
+            self.admin = admin
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "username": self.username,
+                "email": self.email,
+                "password": self.password,
+                "admin": self.admin
+            }
+
+    return AdminTest(id=99,
+                     username="admin",
+                     email="admin@example.com",
+                     password="admin",
+                     admin=True
+                     )
 
 
 def create_user_db(body: user, db: session):
@@ -71,6 +104,23 @@ def create_user_db(body: user, db: session):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    return new_user
+
+
+def create_user_db_admin(body: admin, db: session):
+    new_admin = User(**body.dict())
+    db.add(new_admin)
+    db.commit()
+    db.refresh(new_admin)
+    return new_admin
+
+
+def login_as_admin(user, session):
+    create_user_db_admin(user, session)
+    user_update: User = session.query(User).filter(User.email == user.email).first()
+    user_update.password = auth_service.get_password_hash(user_update.password)
+    user_update.confirmed = True
+    session.commit()
 
 
 def login_user_confirmed_true_and_hash_password(user, session):
@@ -136,3 +186,25 @@ def fake_db_for_message_test():
     db["get_messages_for_user"] = get_messages_for_user
 
     return db
+
+
+@pytest.fixture(scope="module")
+def mock_picture(width=250, height=250, color=(255, 0, 0)):
+    """
+    Create a mock picture.
+
+    Args:
+    - width (int): Width of the picture.
+    - height (int): Height of the picture.
+    - color (tuple): RGB color tuple for the picture background.
+
+    Returns:
+    - BytesIO: BytesIO object containing the mock picture.
+    """
+
+    image = Image.new("RGB", (width, height), color)
+    image_bytes_io = BytesIO()
+    image.save(image_bytes_io, format="PNG")
+    image_bytes_io.seek(0)
+
+    return image_bytes_io

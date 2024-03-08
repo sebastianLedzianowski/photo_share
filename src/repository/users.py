@@ -198,3 +198,27 @@ async def upgrade_password(user: UserModel, new_password: str, db: Session):
     """
     user.password = auth_service.get_password_hash(new_password)
     db.commit()
+
+
+async def get_user_by_username(username: str, db: Session):
+    """
+    Asynchronously retrieves a user by their username from the database.
+
+    This function queries the database for a user with the specified `username`. If the user exists,
+    it returns a Pydantic model (`UserDb`) representation of the user. If the user does not exist,
+    it raises an HTTPException with a 400 status code.
+
+    Args:
+        username (str): The unique username of the user to retrieve.
+        db (Session): The database session used to execute the query.
+
+    Returns:
+        UserDb: A Pydantic model representing the retrieved user's data.
+
+    Raises:
+        HTTPException: A 400 error if the user with the specified username does not exist.
+    """
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserDb.from_orm(user)

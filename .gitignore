@@ -166,3 +166,8 @@ cython_debug/
 pytest.ini
 # VSCode files
 .vscode
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

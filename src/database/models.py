@@ -1,8 +1,10 @@
 from sqlalchemy import Column, Integer, String, func, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.sql.sqltypes import DateTime, Boolean
+from sqlalchemy.sql.sqltypes import DateTime, Boolean, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
+
 
 class PictureTagsAssociation(Base):
     """
@@ -16,6 +18,7 @@ class PictureTagsAssociation(Base):
 
     picture_id = Column(Integer, ForeignKey('picture.id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tag.id'), primary_key=True)
+
 
 class Tag(Base):
     """
@@ -44,12 +47,18 @@ class Picture(Base):
         user (User): Relationship with the User model representing the uploader of the picture.
         tags (list[Tag]): Relationship with the Tag model representing tags associated with the picture.
         comments (list[Comment]): Relationship with the Comment model representing comments on the picture.
+        picture_url (str): URL of the original picture.
+        picture_edited_url (str): URL of the edited picture (nullable).
+        picture_name (str): Name of the picture.
+        description (str): Description of the picture (nullable).
+        created_at (DateTime): Timestamp indicating when the picture was created.
     """
     __tablename__ = "picture"
 
     id = Column(Integer, primary_key=True, index=True)
     picture_url = Column(String(255), nullable=False)
     picture_edited_url = Column(String(255), nullable=True)
+    picture_name = Column(String(255), nullable=True)
     rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
@@ -82,13 +91,14 @@ class Comment(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
-    likes = relationship('CommentLike', back_populates='comment')
+    reactions = relationship('Reaction', back_populates='comment')
     picture = relationship('Picture', back_populates='comments')
     user = relationship('User', back_populates='comments')
 
-class CommentLike(Base):
+
+class Reaction(Base):
     """
-    SQLAlchemy model representing a like on a comment.
+    SQLAlchemy model representing a reaction on a comment.
 
     Attributes:
         id (int): Primary key for the like.
@@ -97,14 +107,13 @@ class CommentLike(Base):
         user (User): Relationship with the User model representing the user who liked the comment.
         comment (Comment): Relationship with the Comment model representing the liked comment.
     """
-    __tablename__ = "comment_like"
+    __tablename__ = "reactions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     comment_id = Column(Integer, ForeignKey('comment.id'))
+    data = Column(JSON)
+    comment = relationship('Comment', back_populates='reactions')
 
-    user = relationship('User', back_populates='comment_likes')
-    comment = relationship('Comment', back_populates='likes')
 
 class User(Base):
     """
@@ -135,14 +144,13 @@ class User(Base):
     password = Column(String(255), nullable=False)
     created_at = Column('crated_at', DateTime, default=func.now())
     avatar = Column(String(255), nullable=True)
-    refresh_token = Column(String(255), nullable=True)
+    refresh_token = Column(String(2048), nullable=True)
     confirmed = Column(Boolean, default=False)
     admin = Column(Boolean, default=False)
     moderator = Column(Boolean, default=False)
 
     pictures = relationship('Picture', back_populates='user')
     comments = relationship('Comment', back_populates='user')
-    comment_likes = relationship('CommentLike', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')
     received_messages = relationship('Message', back_populates='receiver', foreign_keys='Message.receiver_id')
 
@@ -165,6 +173,8 @@ class User(Base):
             "admin": self.admin,
             "moderator": self.moderator
         }
+
+
 class Message(Base):
     """
     SQLAlchemy model representing a message.
