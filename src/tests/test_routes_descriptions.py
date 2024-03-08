@@ -22,7 +22,7 @@ def create_x_pictures(session, no_of_pictures):
 
 
 
-def test_upload_description(user, session, client):
+def test_upload_description_picture_found(user, session, client):
     new_user = login_user_token_created(user, session)
     no_of_pictures = 4
     no_to_upload = no_of_pictures - 1
@@ -47,31 +47,54 @@ def test_upload_description(user, session, client):
         assert data["description"] == new_description
 
 
+def test_upload_description_picture_not_found(user, session, client):
+    new_user = login_user_token_created(user, session)
+    no_of_pictures = 4
+    no_to_upload = no_of_pictures +100
+
+    pictures = create_x_pictures(session, no_of_pictures)
+
+    new_description = "Test of description uploading"
+
+    with patch.object(auth_service, 'r') as r_mock:
+        r_mock.get.return_value = None
+        response = client.post(
+            f"/api/descriptions/upload/",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user['access_token']}"
+            },
+            params={"picture_id": no_to_upload, "description": new_description},
+        )
+        data = response.json()
+
+        assert response.status_code == 404, response.text
+
 def test_get_all_descriptions(user, session, client):
     no_of_pictures = 4
     pictures = create_x_pictures(session, no_of_pictures)
+    list_of_descriptions = []
+    for i in range(no_of_pictures):
+        list_of_descriptions.append(pictures[i].description)
+
 
     with patch.object(auth_service, 'r') as r_mock:
         r_mock.get.return_value = None
         response = client.get("/api/descriptions/")
         data = response.json()
-        # for i in range(no_of_pictures):
-            # print("\nPICTURE: ", pictures[i].description)
-            # print("\nDATA: ", data[i]["description"])
 
         assert response.status_code == 200, response.text
         assert isinstance(data, list)
         assert len(data) == no_of_pictures
         for i in range(no_of_pictures):
-            assert data[i]["description"] == pictures[i].description
+            assert data[i]["description"] == list_of_descriptions[i]
 
 
 def test_get_one_description_picture_found(user, session, client):
     no_of_pictures = 4
     no_to_get = no_of_pictures - 1
     pictures = create_x_pictures(session, no_of_pictures)
-
-    print("PIC: ", pictures[no_to_get - 1].description)
+    description = pictures[no_to_get - 1].description
 
     with patch.object(auth_service, 'r') as r_mock:
         r_mock.get.return_value = None
@@ -79,7 +102,7 @@ def test_get_one_description_picture_found(user, session, client):
         data = response.json()
 
         assert response.status_code == 200, response.text
-        assert data["description"] == pictures[no_to_get - 1].description
+        assert data["description"] == description
 
 
 def test_get_one_description_picture_not_found(user, session, client):
@@ -175,7 +198,3 @@ def test_delete_description_picture_not_found(user, session, client):
             }
         )
         assert response.status_code == 404, response.text
-
-
-if __name__ == "__main__":
-    pytest.main()

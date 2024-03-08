@@ -45,9 +45,7 @@ def test_upload_picture(user, session, client, mock_picture):
 
 
 def test_get_all_pictures(user, session, client):
-
     no_of_pictures = 4
-
     pictures = create_x_pictures(session, no_of_pictures)
 
     with patch.object(auth_service, 'r') as r_mock:
@@ -184,7 +182,3 @@ def test_delete_picture_not_found(user, session, client):
         )
 
         assert response.status_code == 404, response.text
-
-
-if __name__ == "__main__":
-    pytest.main()
