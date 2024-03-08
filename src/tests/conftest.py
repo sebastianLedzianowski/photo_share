@@ -7,7 +7,7 @@ from PIL import Image
 from io import BytesIO
 
 from main import app
-from src.database.models import Base, User, Picture
+from src.database.models import Base, User
 from src.database.db import get_db
 from src.services.auth import auth_service
 from faker import Faker
@@ -187,34 +187,6 @@ def fake_db_for_message_test():
 
     return db
 
-@pytest.fixture(scope="function")
-def fake_db_for_pictures_test():
-    '''
-    This fixture is used to fake db for pictures testing
-    '''
-    # Initialize the fake database structure
-    db = {"pictures": {}, "next_picture_id": 1}
-
-    def create_picture(picture_url, description, created_at):
-
-        picture_id = db["next_picture_id"]
-        db["pictures"][picture_id] = {
-            "id": picture_id,
-            "picture_url": picture_url,
-            "description": description,
-            "created_at": created_at,
-        }
-        db["next_picture_id"] += 1
-        # Create a Picture object and add it to the database session
-        picture = Picture(id=picture_id, picture_url=picture_url, description=description, created_at=created_at)
-        db["pictures"][picture_id] = picture
-        return picture
-
-    db["create_picture"] = create_picture
-
-
-    return db
-
 
 @pytest.fixture(scope="module")
 def mock_picture(width=250, height=250, color=(255, 0, 0)):
@@ -236,4 +208,3 @@ def mock_picture(width=250, height=250, color=(255, 0, 0)):
     image_bytes_io.seek(0)
 
     return image_bytes_io
-

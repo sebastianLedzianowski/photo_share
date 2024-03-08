@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from src.database.models import Picture
+from fastapi import HTTPException
 
 
 async def upload_description(picture_id: int, description: str, db: Session) -> Picture:
@@ -18,9 +19,11 @@ async def upload_description(picture_id: int, description: str, db: Session) -> 
     """
 
     picture = db.query(Picture).filter(Picture.id == picture_id).first()
-    if picture:
-        picture.description = description
-        db.commit()
+    if not picture:
+        raise HTTPException(status_code=404, detail="Picture not found")
+
+    picture.description = description
+    db.commit()
     return picture
 
 
