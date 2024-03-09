@@ -4,7 +4,8 @@ from src.database.models import Picture, User
 from fastapi import HTTPException
 
 
-async def upload_picture(url: str, version: str, public_id: str, user: User, qr: str, db: Session) -> Picture:
+async def upload_picture(picture_url: str, picture_json: dict, user: User, qr: str, db: Session) -> Picture:
+
     """
     Asynchronously uploads a picture to the database.
 
@@ -21,8 +22,8 @@ async def upload_picture(url: str, version: str, public_id: str, user: User, qr:
     Returns:
     - Picture: The newly uploaded Picture object.
     """
-    converted_picture_name = f"v{version}/{public_id}"
-    picture = Picture(picture_url=url, user_id=user.id, picture_name=converted_picture_name, qr_code_original_picture=qr)
+    
+    picture = Picture(picture_url=picture_url, picture_json=picture_json, user_id=user.id, qr_code_picture=qr)
     db.add(picture)
     db.commit()
     db.refresh(picture)
@@ -112,7 +113,7 @@ async def delete_picture(picture_id: int, db: Session) -> Picture | None:
     return picture
 
 
-async def upload_edited_picture(picture, edited_url, picture_id, db: Session) -> Picture | None:
+async def upload_edited_picture(picture: dict, picture_edited: dict, picture_edited_url: str, db: Session) -> Picture | None:
     """
     Upload the edited picture to the database and return the edited URL.
 
@@ -129,11 +130,13 @@ async def upload_edited_picture(picture, edited_url, picture_id, db: Session) ->
     - HTTPException: If there is an issue committing the changes to the database.
     """
 
-    picture.picture_edited_url = edited_url
+    picture.picture_edited_url = picture_edited_url
+    picture.picture_edited_json = picture_edited
     db.commit()
 
-    return edited_url
-
+    return {
+        "picture_edited_url": picture_edited_url,
+    }
 
 async def validate_edit_parameters(picture_edit):
     """

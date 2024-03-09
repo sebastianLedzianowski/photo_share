@@ -4,7 +4,7 @@ import io
 from src.conf.cloudinary import configure_cloudinary, generate_random_string
 from fastapi import HTTPException, status
 
-async def generate_qr_and_upload_to_cloudinary(url: str, picture_name: str, version: str) -> str:
+async def generate_qr_and_upload_to_cloudinary(url: str, picture: dict = None) -> str:
     
     configure_cloudinary()
     random_string = generate_random_string()
@@ -18,9 +18,22 @@ async def generate_qr_and_upload_to_cloudinary(url: str, picture_name: str, vers
         qr_img.save(qr_bytes, format='JPEG')
         qr_bytes.seek(0)
 
-        qr_upload = cloudinary.uploader.upload(qr_bytes, folder='qr_code', public_id=picture_name, version=version, overwrite=True)
-        qr_url = cloudinary.CloudinaryImage(qr_upload['public_id']).build_url(version=version)
+        if picture:
+            picture_folder = picture['folder']
+            picture_public_id = picture['public_id']
+            picture_version = picture['version']
+            picture_name = picture_public_id.replace(picture_folder + "/", "")
 
+            qr_upload = cloudinary.uploader.upload(qr_bytes, folder='qr_code', public_id=picture_name, version=picture_version, overwrite=True)
+            qr_public_id = qr_upload['public_id']
+
+            qr_url = cloudinary.CloudinaryImage(qr_public_id).build_url(version=picture_version)
+        else:
+            picture_name = generate_random_string()
+            qr_upload = cloudinary.uploader.upload(qr_bytes, folder='profile_qr_code', public_id=picture_name, overwrite=True)
+            qr_public_id = qr_upload['public_id']
+            qr_url = cloudinary.CloudinaryImage(qr_public_id).build_url(version=qr_upload['version'])
+            
         return qr_url
 
     except Exception as e:

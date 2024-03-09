@@ -42,13 +42,14 @@ async def upload_picture(
         picture_name = generate_random_string()
         picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
         version = picture.get('version')
-        url = cloudinary.CloudinaryImage(picture['public_id']).build_url(version=version)
-        qr = await generate_qr_and_upload_to_cloudinary(url=url, picture_name=picture_name, version=version)
-      
-        picture_url = await repository_pictures.upload_picture(url=url, version=version, public_id=picture['public_id'], user=current_user, qr=qr, db=db)
 
-        return picture_url
-      
+        picture_url = cloudinary.CloudinaryImage(picture['public_id']).build_url(version=version)
+        qr = await generate_qr_and_upload_to_cloudinary(picture_url, picture)
+
+        picture_in_db = await repository_pictures.upload_picture(picture_url=picture_url, picture_json=picture, user=current_user, qr=qr, db=db)
+
+        return picture_in_db
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -193,20 +194,25 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
     - HTTPException: If an error occurs during the editing process, such as validation failure or database access issues.
     """
 
-    await repository_pictures.validate_edit_parameters(picture_edit)
-
-    configure_cloudinary()
-
     try:
+        configure_cloudinary()
 
+        await repository_pictures.validate_edit_parameters(picture_edit)
         picture = await repository_pictures.get_one_picture(picture_id, db)
-        transformation = await repository_pictures.parse_transform_effects(picture_edit)
+        picture_json = picture.picture_json
+        picture_public_id = picture_json['public_id']
+        picture_version = picture_json['version']
 
-        edited_url = cloudinary.utils.cloudinary_url(
-            picture.picture_name, transformation=transformation
+        transformation = await repository_pictures.parse_transform_effects(picture_edit)
+        transformation_url = cloudinary.utils.cloudinary_url(picture_public_id, transformation=transformation
         )[0]
 
-        return await repository_pictures.upload_edited_picture(picture, edited_url, picture_id, db)
+
+        picture_edited = cloudinary.uploader.upload(transformation_url, version=picture_version, public_id=f'{picture_public_id}_edited', overwrite=True)
+        picture_edited_url = cloudinary.CloudinaryImage(picture_edited['public_id']).build_url(version=picture_version)
+
+        return await repository_pictures.upload_edited_picture(picture=picture, picture_edited=picture_edited, picture_edited_url=picture_edited_url, db=db)
+    
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
