@@ -37,21 +37,18 @@ async def upload_picture(
     Returns:
     - The URL of the uploaded picture as a PictureDB instance.
     """
-
     try:
         configure_cloudinary()
         picture_name = generate_random_string()
-
         picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
         version = picture.get('version')
-
         url = cloudinary.CloudinaryImage(picture['public_id']).build_url(version=version)
         qr = await generate_qr_and_upload_to_cloudinary(url=url, picture_name=picture_name, version=version)
-
+      
         picture_url = await repository_pictures.upload_picture(url=url, version=version, public_id=picture['public_id'], user=current_user, qr=qr, db=db)
 
         return picture_url
-
+      
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

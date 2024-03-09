@@ -7,7 +7,7 @@ from datetime import datetime
 
 from src.database.models import Picture, Tag, User
 from src.database.db import get_db
-from src.schemas import PictureResponse, PictureSearch, UserResponse
+from src.schemas import PictureResponse, UserResponse, PictureSearch, UserSearch
 from src.services.auth import Auth
 from src.services.search import PictureSearchService, UserSearchService, UserPictureSearchService
 
@@ -17,16 +17,16 @@ get_current_user = Auth.get_current_user
 router = APIRouter()
 
 
-def search_pictures(search_params: PictureSearch, rating: Optional[int] = None, added_after: Optional[datetime] = None, sort_by: Optional[str] = "created_at", sort_order: Optional[str] = "desc", db: Session = Depends(get_db)) -> List[PictureResponse]:
+def search_pictures(search_params: PictureSearch, sort_by: Optional[str] = "created_at", sort_order: Optional[str] = "desc", db: Session = Depends(get_db)) -> List[PictureResponse]:
     picture_search_service = PictureSearchService(db)
-    return picture_search_service.search_pictures(search_params, rating, added_after, sort_by, sort_order)
+    return picture_search_service.search_pictures(search_params, sort_by, sort_order)
 
 router.post("/pictures/search", tags=["pictures"], response_model=List[PictureResponse])(search_pictures)
 
 
-def search_users(search_params: PictureSearch, username: Optional[str] = None, email: Optional[str] = None, db: Session = Depends(get_db)) -> List[UserResponse]:
+def search_users(search_params: UserSearch, db: Session = Depends(get_db)) -> List[UserResponse]:
     user_search_service = UserSearchService(db)
-    return user_search_service.search_users(search_params, username, email)
+    return user_search_service.search_users(search_params)
 
 router.post("/users/search", tags=["users"], response_model=List[UserResponse])(search_users)
 
