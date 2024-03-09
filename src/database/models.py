@@ -56,11 +56,12 @@ class Picture(Base):
     __tablename__ = "picture"
 
     id = Column(Integer, primary_key=True, index=True)
+    picture_json = Column(JSON, nullable=True)
     picture_url = Column(String(255), nullable=False)
+    picture_edited_json = Column(JSON, nullable=True)
     picture_edited_url = Column(String(255), nullable=True)
-    qr_code_original_picture = Column(String(255), nullable=True)
-    qr_code_edited_picture = Column(String(255), nullable=True)
-    picture_name = Column(String(255), nullable=True)
+    qr_code_picture = Column(String(255), nullable=True)
+    qr_code_picture_edited = Column(String(255), nullable=True)
     rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
