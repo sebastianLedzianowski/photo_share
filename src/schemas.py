@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class UserModel(BaseModel):
@@ -232,3 +232,29 @@ class ReactionName(str, Enum):
     wow = "wow"
     haha = "haha"
     dislike = "dislike"
+
+
+class RatingValue(IntEnum):
+    """
+    Enum representing the allowed rating values.
+    """
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+
+class RatingCreate(BaseModel):
+    """
+    Scheme for creating a new rating.
+
+    Attributes:
+    Picture_id (int): Image ID to be evaluated.
+    Rating (RatingValue): The rating value as one of the allowed values of Enum.
+    """
+    picture_id: int
+    rating: RatingValue
+
+    class Config:
+        orm_mode = True
+        use_enum_values = True
