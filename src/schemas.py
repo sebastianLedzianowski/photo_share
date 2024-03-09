@@ -89,7 +89,7 @@ class PictureDB(BaseModel):
 
     id: int
     picture_url: str | None
-    rating: Optional[int] | None
+    qr_code_picture: str | None
     description: Optional[str] | None
     created_at: datetime
 
