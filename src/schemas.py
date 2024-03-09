@@ -117,7 +117,6 @@ class PictureSearch(BaseModel):
     id: Optional[List[int]] = None
     picture_name: Optional[List[str]] = None
     rating: Optional[List[int]] | None
-    description: Optional[str] | None
     created_at: Optional[datetime] = None
 
 

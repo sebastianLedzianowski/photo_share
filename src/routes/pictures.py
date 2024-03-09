@@ -37,11 +37,9 @@ async def upload_picture(
     Returns:
     - The URL of the uploaded picture as a PictureDB instance.
     """
-
     try:
         configure_cloudinary()
         picture_name = generate_random_string()
-
         picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
         version = picture.get('version')
 

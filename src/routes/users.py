@@ -129,6 +129,29 @@ async def ban_user_route(user_id: int, db: Session = Depends(get_db), current_us
         return {"message": "User has been banned successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.delete("/delete_account")
+async def delete_own_account(current_user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
+    """
+    Delete the authenticated user's own account.
+
+    This endpoint allows the authenticated user to delete their own account.
+
+    Args:
+        current_user (User): The authenticated user.
+        db (Session): The SQLAlchemy database session used to execute the delete operation.
+
+    Returns:
+        dict: A confirmation message indicating successful deletion.
+    """
+    try:
+
+        db.delete(current_user)
+        db.commit()
+        
+        return {"message": "Your account has been successfully deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/name/{username}", response_model=UserDb)
 async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:

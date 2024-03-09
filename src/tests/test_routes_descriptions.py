@@ -50,7 +50,7 @@ def test_upload_description_picture_found(user, session, client):
 def test_upload_description_picture_not_found(user, session, client):
     new_user = login_user_token_created(user, session)
     no_of_pictures = 4
-    no_to_upload = no_of_pictures +100
+    no_to_upload = no_of_pictures + 100
 
     pictures = create_x_pictures(session, no_of_pictures)
 
