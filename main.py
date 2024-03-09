@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions
+from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions, rating
 from src.database.db import get_db
 from src.database.models import User
 from src.services.auth import auth_service
@@ -19,12 +19,10 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory='templates')
 
-# Define allowed origins for CORS (Cross-Origin Resource Sharing)
 origins = [
     "http://localhost:8000"
     ]
 
-# Add CORS middleware to allow requests from the defined origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -38,6 +36,7 @@ app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(search.router, prefix='/api')
 app.include_router(pictures.router, prefix='/api')
+app.include_router(rating.router, prefix='/api')
 app.include_router(descriptions.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 app.include_router(comments.router, prefix='/api')
@@ -133,28 +132,22 @@ async def login_form(request: Request, db: Session = Depends(get_db)):
     password = form.get('password')
     errors = []
 
-    # Validate inputs
     if not email or not password:
         errors.append('Please enter a valid email address and password.')
 
-    # Attempt to retrieve the user and verify credentials
     user = db.query(User).filter(User.email == email).first() if not errors else None
     if user and auth_service.verify_password(password, user.password):
-        # Create tokens
         data = {"sub": email}
         jwt_token = auth_service.create_access_token(data=data)
         jwt_refresh_token = auth_service.create_refresh_token(data=data)
 
-        # Prepare the successful login response
         response = templates.TemplateResponse('index.html', {'request': request, 'user': user})
         response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
         response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
         return response
     else:
-        # Handle invalid credentials or other errors
         errors.append('Invalid email or password.')
 
-    # Use a single point for rendering the error response
     return templates.TemplateResponse('login.html', {'request': request, 'errors': errors})
 
 
