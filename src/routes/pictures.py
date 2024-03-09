@@ -39,21 +39,16 @@ async def upload_picture(
     configure_cloudinary()
     random_string = generate_random_string()
 
-    try:
+    picture_name = f'picture/{random_string}'
+    picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, overwrite=True)
 
-        picture_name = f'picture/{random_string}'
-        picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, overwrite=True)
+    version = picture.get('version')
+    picture_name = picture.get('public_id')
 
-        version = picture.get('version')
-        picture_name = picture.get('public_id')
+    url = cloudinary.CloudinaryImage(picture_name).build_url(version=version)
 
-        url = cloudinary.CloudinaryImage(picture_name).build_url(version=version)
-
-        picture_url = await repository_pictures.upload_picture(url=url, version=version, picture_name=picture_name, user=current_user, db=db)
-        return picture_url
-
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    picture_url = await repository_pictures.upload_picture(url=url, version=version, picture_name=picture_name, user=current_user, db=db)
+    return picture_url
 
 
 @router.get("/", response_model=List[PictureDB])
