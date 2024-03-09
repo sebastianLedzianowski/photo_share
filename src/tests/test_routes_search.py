@@ -30,10 +30,14 @@ from src.services.auth import auth_service
 from main import app
 
 
+@pytest.fixture
+def mocker():
+    return MagicMock()
+
 class Test_Search_Picture:
 
     # The function returns a list of PictureResponse objects when given valid search parameters.
-    def test_valid_search_parameters(self, mocker):
+    def test_valid_search_parameters(mocker):
         # Mock the PictureSearchService
         mock_service = mocker.Mock()
         mocker.patch('src.routes.search.PictureSearchService', return_value=mock_service)
@@ -42,7 +46,7 @@ class Test_Search_Picture:
         mock_service.search_pictures.return_value = [PictureResponse(id=1, url='example.com/pic1.jpg'), PictureResponse(id=2, url='example.com/pic2.jpg')]
 
         # Call the search_pictures function
-        result = self.search_pictures(PictureSearch(), sort_by='created_at', sort_order='desc')
+        result = search_pictures(PictureSearch(), sort_by='created_at', sort_order='desc')
 
         # Assert that the result is a list of PictureResponse objects
         assert isinstance(result, list)
