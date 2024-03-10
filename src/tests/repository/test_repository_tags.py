@@ -5,68 +5,77 @@ from src.database.models import Tag
 from unittest.mock import patch
 
 @pytest.mark.asyncio
-async def test_add_new_tags_to_db_success(session: Session):
-    # Arrange
-    tags_to_add = ["tag1", "tag2", "tag3", "tag4", "tag5"]
+async def test_add_new_tags_to_db_with_new_tags_only(session: Session):
+    new_tags = ["tag1", "tag2", "tag3", "tag4", "tag5"]
+       
+    mock_return_value = []
+    
+    with patch.object(session.query(Tag), 'filter', return_value=mock_return_value):
+        response = await tags.add_tags_to_db(picture_id=1, tags=new_tags, db=session)
 
-    # Act
-    new_tags = await tags.add_new_tags_to_db(session, tags_to_add)
+    assert len(response.new_tags) == len(new_tags)
+    for tag_model, new_tag in zip(response.new_tags, new_tags):
+        assert tag_model.name == new_tag
+    
+    assert len(response.existing_tags) == 0
 
-    # Assert
-    assert len(new_tags) == len(tags_to_add)
-    for tag in new_tags:
-        assert isinstance(tag, Tag)
-        assert tag.name in tags_to_add
 
 @pytest.mark.asyncio
 async def test_add_new_tags_to_db_with_existing_tags(session: Session):
-    # Arrange
     existing_tags = ["tag1", "tag2"]
-    tags_to_add = existing_tags + ["tag3", "tag4", "tag5"]
-    mock_return_value = [Tag(name=tag) for tag in existing_tags]
+    new_tags = ["tag3", "tag4", "tag5"]
+    
+    session.add_all([Tag(name=name) for name in existing_tags])
+    session.commit()
+    
+    all_tags = existing_tags + new_tags
 
-    with patch('src.repository.tags.filter_existing_tags') as mock_filter_existing_tags:
-        mock_filter_existing_tags.return_value = mock_return_value
+    mock_return_value = [Tag(name=name) for name in existing_tags]
 
-        # Act
-        new_tags = await tags.add_new_tags_to_db(session, tags_to_add)
+    with patch.object(session.query().filter(), 'all', return_value=mock_return_value):
+        response = await tags.add_tags_to_db(picture_id=1, tags=all_tags, db=session)
 
-    # Assert
-    assert len(new_tags) == 3
-    for tag in new_tags:
-        assert isinstance(tag, Tag)
-        assert tag.name in tags_to_add
+    assert len(response.new_tags) == len(new_tags)
+    for tag_model, new_tag in zip(response.new_tags, new_tags):
+        assert tag_model.name == new_tag
+    
+    assert len(response.existing_tags) == len(existing_tags)
+    for tag_model, existing_tags in zip(response.existing_tags, existing_tags):
+        assert tag_model.name == existing_tags
+
 
 @pytest.mark.asyncio
 async def test_add_new_tags_to_db_with_existing_tags_only(session: Session):
-    # Arrange
     existing_tags = ["tag1", "tag2", "tag3", "tag4", "tag5"]
+    
+    session.add_all([Tag(name=name) for name in existing_tags])
+    session.commit()
 
-    with patch('src.repository.tags.filter_existing_tags') as mock_filter_existing_tags:
-        mock_filter_existing_tags.return_value = [Tag(name=tag) for tag in existing_tags]
+    all_tags = existing_tags
 
-        # Act
-        new_tags = await tags.add_new_tags_to_db(session, existing_tags)
+    mock_return_value = [Tag(name=name) for name in existing_tags]
 
-    # Assert
-    assert len(new_tags) == 0
+    with patch.object(session.query().filter(), 'all', return_value=mock_return_value):
+        response = await tags.add_tags_to_db(picture_id=1, tags=all_tags, db=session)
+
+    assert len(response.new_tags) == 0
+    
+    assert len(response.existing_tags) == len(existing_tags)
+    for tag_model, existing_tag in zip(response.existing_tags, existing_tags):
+        assert tag_model.name == existing_tag
+
 
 @pytest.mark.asyncio
 async def test_add_new_tags_to_db_exceed_max_limit(session: Session):
-    # Arrange
     tags_to_add = ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6"]
 
-    with patch('src.repository.tags.filter_existing_tags') as mock_filter_existing_tags:
-        mock_filter_existing_tags.return_value = []
+    with pytest.raises(ValueError):
+        await tags.add_tags_to_db(picture_id=1, tags=tags_to_add, db=session)
 
-        # Act / Assert
-        with pytest.raises(ValueError):
-            await tags.add_new_tags_to_db(session, tags_to_add)
 
 @pytest.mark.asyncio
 async def test_add_new_tags_to_db_invalid_input(session: Session):
-    # Arrange
-    invalid_inputs = [
+    invalid_inputs_tags = [
         "tag1",  # string
         123,     # int
         {"tag": "tag1"},  # dict
@@ -78,7 +87,22 @@ async def test_add_new_tags_to_db_invalid_input(session: Session):
         [(1, 2), (3, 4)],  # list of tuples
     ]
 
-    # Act / Assert
-    for invalid_input in invalid_inputs:
+    invalid_inputs_picture_id = [
+        "tag1",  # string
+        {"tag": "tag1"},  # dict
+        None,    # None
+        ["kotek","piesek"],  # list of strings
+        [1, 2, 3],  # list of integers
+        [1.0, 2.0, 3.0],  # list of floats
+        [[], [], []],  # list of lists
+        [True, False],  # list of booleans
+        [(1, 2), (3, 4)],  # list of tuples
+    ]
+
+    for invalid_input in invalid_inputs_tags:
         with pytest.raises(TypeError):
-            await tags.add_new_tags_to_db(session, invalid_input)
+            await tags.add_tags_to_db(picture_id=1, tags=invalid_input, db=session)
+
+    for invalid_input in invalid_inputs_picture_id:
+        with pytest.raises(TypeError):
+            await tags.add_tags_to_db(picture_id=invalid_input, tags=["kotek"], db=session)
