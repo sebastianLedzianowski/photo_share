@@ -63,16 +63,32 @@ async def update_comment(
     return comment
 
 
-@router.delete("/{contact_id}")
-async def remove_contact(
+@router.delete("/{comment_id}")
+async def remove_comment(
         comment_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(auth_service.get_current_user)
-):
+) -> JSONResponse:
+    """Delete comment by id. User can delete only his own comment.
+
+    Args:
+        comment_id (int): Comment id
+        db (Session): Database session
+        current_user (User): Current user
+
+    Returns:
+        JSONResponse: Json response with result
+    """
     comment = await repository_comments.remove_comment(comment_id, current_user, db)
     if comment is None:
-        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"message": "You can't delete the comment."})
-    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "The comment deleted successfully"})
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "You can't delete the comment."}
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "The comment deleted successfully"}
+    )
 
 @router.post("/reactions/{reaction}", status_code=status.HTTP_201_CREATED)
 async def react_to_comment(

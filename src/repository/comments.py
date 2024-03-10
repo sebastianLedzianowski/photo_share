@@ -37,6 +37,10 @@ async def update_comment(comment_id: int, body: CommentUpdate, user: User, db: S
 
 
 async def remove_comment(comment_id: int, user: User, db: Session) -> Union[dict, None]:
+    """
+    Delete the comment with given comment id if user is admin or moderator.
+    Otherwise return a message saying that the user can't delete the comment.
+    """
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
     if user.admin or user.moderator:
         if comment:
