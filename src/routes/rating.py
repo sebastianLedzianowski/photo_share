@@ -1,9 +1,12 @@
+from typing import Any, List
+
 from fastapi import Depends, status, APIRouter
 from sqlalchemy.orm import Session
+
 from src.database.db import get_db
 from src.database.models import User
 from src.repository.rating import add_rating_to_picture, remove_rating_from_picture, get_rating, get_average_of_rating
-from src.schemas import RatingCreate
+from src.schemas import RatingValue
 from src.services.auth import auth_service
 
 router = APIRouter(prefix="/rating", tags=["rating"])
@@ -11,9 +14,11 @@ router = APIRouter(prefix="/rating", tags=["rating"])
 
 @router.post("/{rating}", status_code=status.HTTP_201_CREATED)
 async def create_rating(
-        rating: RatingCreate,
+        picture_id: int,
+        rating: RatingValue,
         current_user: User = Depends(auth_service.get_current_user),
-        db: Session = Depends(get_db)):
+        db: Session = Depends(get_db)
+):
     """
     Creates a new rating for a picture.
 
@@ -21,8 +26,7 @@ async def create_rating(
     - **rating**: The rating assigned to the picture, must be one of the allowed values (1-5).
     """
 
-    result = await add_rating_to_picture(rating.picture_id, rating.rating, current_user, db)
-    return result
+    return await add_rating_to_picture(picture_id, rating, current_user, db)
 
 
 @router.delete("/{rating}")

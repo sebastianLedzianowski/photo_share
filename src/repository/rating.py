@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from src.database.models import Rating, User
 
-async def add_rating_to_picture(picture_id: int, rating: int, user: User, db: Session):
+async def add_rating_to_picture(picture_id: int, rating: int | None, user: User, db: Session):
     """
     Adds or updates a rating for a picture by a specific user.
 
@@ -17,7 +17,7 @@ async def add_rating_to_picture(picture_id: int, rating: int, user: User, db: Se
     """
     rating_record = db.query(Rating).filter(Rating.picture_id == picture_id).first()
     if not rating_record:
-        new_rating = Rating(picture_id=picture_id, data={str(rating): [user.id]})
+        new_rating = Rating(picture_id=picture_id, data={rating: [user.id]})
         db.add(new_rating)
 
     else:
@@ -25,7 +25,7 @@ async def add_rating_to_picture(picture_id: int, rating: int, user: User, db: Se
         for rat, users in rating_data.items():
             if user.id in users:
                 users.remove(user.id)
-        rating_data[str(rating)] = rating_data.get(str(rating), []) + [user.id]
+        rating_data[rating] = rating_data.get(rating, []) + [user.id]
         rating_record.data = rating_data
     db.commit()
     return {"message": "The rating was successfully created or updated."}

@@ -12,8 +12,7 @@ from src.routes import users, auth, messages, tags, search, comments, pictures, 
 from src.database.db import get_db
 from src.database.models import User
 from src.services.auth import auth_service
-from src.services.secrets_manager import get_secret
-
+from src.services.secrets_manager import SecretsManager
 
 app = FastAPI()
 
@@ -43,9 +42,9 @@ app.include_router(comments.router, prefix='/api')
 app.include_router(reactions.router, prefix='/api')
 app.include_router(admin.router, prefix='/api')
 
-REDIS_HOST = get_secret("REDIS_HOST")
-REDIS_PORT = get_secret("REDIS_PORT")
-REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
+REDIS_HOST = SecretsManager.get_secret("REDIS_HOST")
+REDIS_PORT = SecretsManager.get_secret("REDIS_PORT")
+REDIS_PASSWORD = SecretsManager.get_secret("REDIS_PASSWORD")
 
 
 @app.on_event("startup")

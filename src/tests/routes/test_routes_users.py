@@ -1,7 +1,5 @@
-from src.tests.conftest import login_user_confirmed_true_and_hash_password, login_as_admin
-from src.tests.test_routes_auth import login_user_token_created
-from PIL import Image
-from io import BytesIO
+from src.tests.conftest import login_user_confirmed_true_and_hash_password
+from src.tests.routes.test_routes_auth import login_user_token_created
 
 
 def test_read_users_me(user, session, client):

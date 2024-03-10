@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, func, ForeignKey
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql.sqltypes import DateTime, Boolean, JSON
 
@@ -42,7 +43,6 @@ class Picture(Base):
     Attributes:
         id (int): Primary key for the picture.
         user_id (int): Foreign key referencing the id of the user who uploaded the picture.
-        rating (int): Rating of the picture (nullable).
         user (User): Relationship with the User model representing the uploader of the picture.
         tags (list[Tag]): Relationship with the Tag model representing tags associated with the picture.
         comments (list[Comment]): Relationship with the Comment model representing comments on the picture.
@@ -67,7 +67,13 @@ class Picture(Base):
     user = relationship('User', back_populates='pictures')
     tags = relationship('Tag', secondary='picture_tags_association', back_populates='pictures')
     comments = relationship('Comment', back_populates='picture')
-    rating = relationship('Rating', back_populates='picture')
+    ratings = relationship('Rating', back_populates='picture')
+
+    @hybrid_property
+    def average_rating(self):
+        if self.ratings:
+            return sum(rat.rat for rat in self.ratings) / len(self.ratings)
+        return None
 
 
 class Rating(Base):
@@ -77,16 +83,16 @@ class Rating(Base):
         Attributes:
             id (int): The unique identifier for the rating.
             picture_id (int): The identifier of the picture this rating is associated with.
-            data (JSON): The rating data in JSON format.
+            rat (int): The rating rat in int format.
             picture (relationship): The Picture object this rating is associated with.
         """
     __tablename__ = "rating"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     picture_id = Column(Integer, ForeignKey('picture.id'))
-    data = Column(JSON)
+    rat = Column(Integer, nullable=True)
 
-    picture = relationship('Picture', back_populates='rating')
+    picture = relationship('Picture', back_populates='ratings')
 
 class Comment(Base):
     """

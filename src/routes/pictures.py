@@ -1,3 +1,4 @@
+import logging
 from typing import List, Type
 from fastapi import APIRouter, Depends, HTTPException,  UploadFile, File, status
 from sqlalchemy.orm import Session
@@ -6,7 +7,7 @@ import cloudinary.uploader
 
 from src.database.db import get_db
 from src.database.models import User, Picture
-from src.schemas import PictureDB, PictureEdit
+from src.schemas import PictureDB, PictureEdit, PictureResponse
 from src.repository import pictures as repository_pictures
 from src.services.auth import auth_service
 from src.services.qr import generate_qr_and_upload_to_cloudinary
@@ -54,7 +55,7 @@ async def upload_picture(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/", response_model=List[PictureDB])
+@router.get("/", response_model=List[PictureResponse])
 async def get_all_pictures(
         skip: int = 0,
         limit: int = 20,
@@ -76,14 +77,16 @@ async def get_all_pictures(
     """
 
     pictures = await repository_pictures.get_all_pictures(skip=skip, limit=limit, db=db)
+    for picture in pictures:
+        logging.info(f"Picture ID: {picture.id}, Rating: {picture.average_rating}")
     return pictures
 
 
-@router.get("/{picture_id}", response_model=PictureDB)
+@router.get("/{picture_id}", response_model=PictureResponse)
 async def get_one_picture(
         picture_id: int,
         db: Session = Depends(get_db)
-) -> PictureDB:
+) -> PictureResponse:
     """
     Retrieve a specific picture from the database.
 
