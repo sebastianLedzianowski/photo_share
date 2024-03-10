@@ -124,7 +124,12 @@ async def login_form(request: Request,
                      current_user: User = Depends(auth_service.get_current_user_optional),
                      db: Session = Depends(get_db)
                      ):
-    user = db.query(User).filter(User.id == current_user.id).first()
+
+    if current_user is not None:
+        user = db.query(User).filter(User.id == current_user.id).first()
+    else:
+        user = None
+
     context = {"request": request, "user": user}
 
     return templates.TemplateResponse("login.html", context)
