@@ -14,11 +14,12 @@ client = TestClient(app)
 def create_x_pictures(session, no_of_pictures):
     pictures = []
     for i in range(no_of_pictures):
-        picture = Picture(picture_url=f"test_url{i}", description=f"test_description{i}", created_at=datetime.now())
+        picture = Picture(picture_url=f"test_url{i}", description=f"test_description{i}", created_at=datetime.now(), qr_code_picture=f"test_qr_code{i}")
         session.add(picture)
         session.commit()
         pictures.append(picture)
     return pictures
+
 
 def test_upload_picture(user, session, client, mock_picture):
     new_user = login_user_token_created(user, session)
@@ -40,7 +41,7 @@ def test_upload_picture(user, session, client, mock_picture):
         assert response.status_code == 201, response.text
         assert "id" in data
         assert "picture_url" in data
-        assert "rating" in data
+        assert "qr_code_picture" in data
         assert "created_at" in data
 
 
@@ -61,7 +62,6 @@ def test_get_all_pictures(user, session, client):
             assert data[i]["picture_url"] == pictures[i].picture_url
             assert data[i]["description"] == pictures[i].description
             assert "created_at" in data[i]
-            assert "rating" in data[i]
 
 
 def test_get_one_picture_found(user, session, client):
@@ -79,7 +79,6 @@ def test_get_one_picture_found(user, session, client):
         assert data["picture_url"] == pictures[no_to_get - 1].picture_url
         assert data["description"] == pictures[no_to_get - 1].description
         assert "created_at" in data
-        assert "rating" in data
 
 
 def test_get_one_picture_not_found(user, session, client):
@@ -116,7 +115,6 @@ def test_update_picture_found(user, session, client, mock_picture):
         assert response.status_code == 200, response.text
         assert "id" in data
         assert "picture_url" in data
-        assert "rating" in data
         assert "created_at" in data
 
 
@@ -161,7 +159,6 @@ def test_delete_picture_found(user, session, client):
         assert response.status_code == 200, response.text
         assert "id" in data
         assert "picture_url" in data
-        assert "rating" in data
         assert "created_at" in data
 
 

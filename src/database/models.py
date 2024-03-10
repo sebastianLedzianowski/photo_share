@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, func, ForeignKey
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql.sqltypes import DateTime, Boolean, JSON
-from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
@@ -43,13 +43,13 @@ class Picture(Base):
     Attributes:
         id (int): Primary key for the picture.
         user_id (int): Foreign key referencing the id of the user who uploaded the picture.
-        rating (int): Rating of the picture (nullable).
         user (User): Relationship with the User model representing the uploader of the picture.
         tags (list[Tag]): Relationship with the Tag model representing tags associated with the picture.
         comments (list[Comment]): Relationship with the Comment model representing comments on the picture.
         picture_url (str): URL of the original picture.
         picture_edited_url (str): URL of the edited picture (nullable).
-        picture_name (str): Name of the picture.
+        qr_code_picture (str): URL of the QR code associated with the original picture (nullable).
+        qr_code_picture_edited (str): URL of the QR code associated with the edited picture (nullable).
         description (str): Description of the picture (nullable).
         created_at (DateTime): Timestamp indicating when the picture was created.
     """
@@ -62,13 +62,45 @@ class Picture(Base):
     picture_edited_url = Column(String(255), nullable=True)
     qr_code_picture = Column(String(255), nullable=True)
     qr_code_picture_edited = Column(String(255), nullable=True)
-    rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
     user_id = Column('user_id', ForeignKey('user.id', ondelete='CASCADE'), default=None)
+
     user = relationship('User', back_populates='pictures')
     tags = relationship('Tag', secondary='picture_tags_association', back_populates='pictures')
     comments = relationship('Comment', back_populates='picture')
+    ratings = relationship('Rating', back_populates='picture')
+
+    @hybrid_property
+    def average_rating(self):
+        if self.ratings:
+            return sum(rat.rat for rat in self.ratings) / len(self.ratings)
+        return None
+
+
+class Rating(Base):
+    """
+    Represents a rating entity associated with a specific picture and user.
+
+    Attributes:
+        id (int): The unique identifier for the rating instance.
+        picture_id (int): The identifier of the picture this rating is associated with.
+        user_id (int): The identifier of the user who provided the rating.
+        rat (int): The numerical rating value. This value is optional and can be null to represent the absence of a rating.
+        picture (relationship): Establishes a relationship to the Picture object this rating is associated with. Allows direct access to the Picture instance.
+        user (relationship): Establishes a relationship to the User object who provided this rating. Allows direct access to the User instance.
+
+    The `picture` and `user` relationships create a direct link between the Rating instance and the associated Picture and User instances, respectively. This setup facilitates easy navigation and manipulation of related data within the application's ORM layer.
+    """
+    __tablename__ = "rating"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    picture_id = Column(Integer, ForeignKey('picture.id', ondelete='CASCADE'))
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    rat = Column(Integer, nullable=True)
+
+    picture = relationship('Picture', back_populates='ratings')
+    user = relationship('User', back_populates='ratings')
 
 
 class Comment(Base):
@@ -80,15 +112,14 @@ class Comment(Base):
         user_id (int): Foreign key referencing the id of the user who posted the comment.
         picture_id (int): Foreign key referencing the id of the picture associated with the comment.
         content (str): Content of the comment.
-        likes (list[CommentLike]): Relationship with the CommentLike model representing likes on the comment.
         picture (Picture): Relationship with the Picture model representing the associated picture.
         user (User): Relationship with the User model representing the user who posted the comment.
     """
     __tablename__ = "comment"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    picture_id = Column(Integer, ForeignKey('picture.id'))
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    picture_id = Column(Integer, ForeignKey('picture.id', ondelete='CASCADE'))
     content = Column(String(255), nullable=False)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
@@ -111,8 +142,9 @@ class Reaction(Base):
     __tablename__ = "reactions"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    comment_id = Column(Integer, ForeignKey('comment.id'))
+    comment_id = Column(Integer, ForeignKey('comment.id', ondelete='CASCADE'))
     data = Column(JSON)
+
     comment = relationship('Comment', back_populates='reactions')
 
 
@@ -133,7 +165,6 @@ class User(Base):
         moderator (bool): Flag indicating whether the user has moderator permissions.
         pictures (list[Picture]): Relationship with the Picture model representing pictures uploaded by the user.
         comments (list[Comment]): Relationship with the Comment model representing comments posted by the user.
-        comment_likes (list[CommentLike]): Relationship with the CommentLike model representing likes given by the user.
         sent_messages (list[Message]): Relationship with the Message model representing messages sent by the user.
         received_messages (list[Message]): Relationship with the Message model representing messages received by the user.
     """
@@ -151,10 +182,12 @@ class User(Base):
     moderator = Column(Boolean, default=False)
     ban_status = Column(Boolean, default=False)
     qr_code = Column(String(255), nullable=True)
+
     pictures = relationship('Picture', back_populates='user')
     comments = relationship('Comment', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')
     received_messages = relationship('Message', back_populates='receiver', foreign_keys='Message.receiver_id')
+    ratings = relationship('Rating', back_populates='user')
 
     def dict(self):
         """

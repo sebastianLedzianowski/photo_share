@@ -40,8 +40,10 @@
                 <!-- User/Admin button -->
                 {% if user.admin %}
                     <button class="btn btn-info me-3" onclick="window.location.href='/users/'">Admin Panel</button>
-                {% else %}
+                {% elif user.id %}
                     <button class="btn btn-info me-3" onclick="window.location.href='/users/{{ user.id }}'">User Page</button>
+
+
                 {% endif %}
 
                 <button class="btn btn-secondary my-2 my-sm-0 ms-2" onclick="window.location.href='/login'">Login</button>

@@ -8,23 +8,20 @@ from sqlalchemy.orm import Session
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions
+from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions, rating
 from src.database.db import get_db
 from src.database.models import User
 from src.services.auth import auth_service
-from src.services.secrets_manager import get_secret
-
+from src.services.secrets_manager import SecretsManager
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory='templates')
 
-# Define allowed origins for CORS (Cross-Origin Resource Sharing)
 origins = [
     "http://localhost:8000"
     ]
 
-# Add CORS middleware to allow requests from the defined origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -38,15 +35,16 @@ app.include_router(users.router, prefix='/api')
 app.include_router(messages.router, prefix='/api')
 app.include_router(search.router, prefix='/api')
 app.include_router(pictures.router, prefix='/api')
+app.include_router(rating.router, prefix='/api')
 app.include_router(descriptions.router, prefix='/api')
 app.include_router(tags.router, prefix='/api')
 app.include_router(comments.router, prefix='/api')
 app.include_router(reactions.router, prefix='/api')
 app.include_router(admin.router, prefix='/api')
 
-REDIS_HOST = get_secret("REDIS_HOST")
-REDIS_PORT = get_secret("REDIS_PORT")
-REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
+REDIS_HOST = SecretsManager.get_secret("REDIS_HOST")
+REDIS_PORT = SecretsManager.get_secret("REDIS_PORT")
+REDIS_PASSWORD = SecretsManager.get_secret("REDIS_PASSWORD")
 
 
 @app.on_event("startup")
@@ -86,7 +84,11 @@ async def pictures(request: Request,
         response = await client.get('http://localhost:8000/api/pictures/?skip=0&limit=20')
         pictures = response.json()
 
-    user = db.query(User).filter(User.id == current_user.id).first()
+    if current_user is not None:
+        user = db.query(User).filter(User.id == current_user.id).first()
+    else:
+        user = None
+
     context = {'request': request, 'pictures': pictures, 'user': user}
     return templates.TemplateResponse('pictures.html', context)
 
@@ -120,7 +122,12 @@ async def login_form(request: Request,
                      current_user: User = Depends(auth_service.get_current_user_optional),
                      db: Session = Depends(get_db)
                      ):
-    user = db.query(User).filter(User.id == current_user.id).first()
+
+    if current_user is not None:
+        user = db.query(User).filter(User.id == current_user.id).first()
+    else:
+        user = None
+
     context = {"request": request, "user": user}
 
     return templates.TemplateResponse("login.html", context)
@@ -133,28 +140,22 @@ async def login_form(request: Request, db: Session = Depends(get_db)):
     password = form.get('password')
     errors = []
 
-    # Validate inputs
     if not email or not password:
         errors.append('Please enter a valid email address and password.')
 
-    # Attempt to retrieve the user and verify credentials
     user = db.query(User).filter(User.email == email).first() if not errors else None
     if user and auth_service.verify_password(password, user.password):
-        # Create tokens
         data = {"sub": email}
         jwt_token = auth_service.create_access_token(data=data)
         jwt_refresh_token = auth_service.create_refresh_token(data=data)
 
-        # Prepare the successful login response
         response = templates.TemplateResponse('index.html', {'request': request, 'user': user})
         response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
         response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
         return response
     else:
-        # Handle invalid credentials or other errors
         errors.append('Invalid email or password.')
 
-    # Use a single point for rendering the error response
     return templates.TemplateResponse('login.html', {'request': request, 'errors': errors})
 
 
