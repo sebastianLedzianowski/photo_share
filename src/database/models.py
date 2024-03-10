@@ -48,6 +48,8 @@ class Picture(Base):
         comments (list[Comment]): Relationship with the Comment model representing comments on the picture.
         picture_url (str): URL of the original picture.
         picture_edited_url (str): URL of the edited picture (nullable).
+        qr_code_picture (str): URL of the QR code associated with the original picture (nullable).
+        qr_code_picture_edited (str): URL of the QR code associated with the edited picture (nullable).
         description (str): Description of the picture (nullable).
         created_at (DateTime): Timestamp indicating when the picture was created.
     """
@@ -68,6 +70,7 @@ class Picture(Base):
     tags = relationship('Tag', secondary='picture_tags_association', back_populates='pictures')
     comments = relationship('Comment', back_populates='picture')
     ratings = relationship('Rating', back_populates='picture')
+
 
     @hybrid_property
     def average_rating(self):
@@ -95,6 +98,24 @@ class Rating(Base):
 
     picture = relationship('Picture', back_populates='ratings')
     user = relationship('User', back_populates='ratings')
+
+class Rating(Base):
+    """
+        Represents a rating entity associated with a picture.
+
+        Attributes:
+            id (int): The unique identifier for the rating.
+            picture_id (int): The identifier of the picture this rating is associated with.
+            data (JSON): The rating data in JSON format.
+            picture (relationship): The Picture object this rating is associated with.
+        """
+    __tablename__ = "rating"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    picture_id = Column(Integer, ForeignKey('picture.id'))
+    data = Column(JSON)
+
+    picture = relationship('Picture', back_populates='rating')
 
 class Comment(Base):
     """

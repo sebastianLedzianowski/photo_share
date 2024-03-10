@@ -199,21 +199,21 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
         configure_cloudinary()
 
         await repository_pictures.validate_edit_parameters(picture_edit)
-        picture = await repository_pictures.get_one_picture(picture_id, db)
-        picture_json = picture.picture_json
-        picture_public_id = picture_json['public_id']
-        picture_version = picture_json['version']
+        picture_db = await repository_pictures.get_one_picture(picture_id, db)
+        picture = picture_db.picture_json
+        picture_public_id = picture['public_id']
+        picture_version = picture['version']
 
         transformation = await repository_pictures.parse_transform_effects(picture_edit)
         transformation_url = cloudinary.utils.cloudinary_url(picture_public_id, transformation=transformation
         )[0]
 
-
         picture_edited = cloudinary.uploader.upload(transformation_url, version=picture_version, public_id=f'{picture_public_id}_edited', overwrite=True)
         picture_edited_url = cloudinary.CloudinaryImage(picture_edited['public_id']).build_url(version=picture_version)
 
-        return await repository_pictures.upload_edited_picture(picture=picture, picture_edited=picture_edited, picture_edited_url=picture_edited_url, db=db)
-    
+        qr = await generate_qr_and_upload_to_cloudinary(picture_edited_url, picture_edited, picture_version)
 
+        return await repository_pictures.upload_edited_picture(picture=picture_db, picture_edited=picture_edited, picture_edited_url=picture_edited_url, qr=qr, db=db)
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
