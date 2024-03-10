@@ -71,7 +71,6 @@ class Picture(Base):
     comments = relationship('Comment', back_populates='picture')
     ratings = relationship('Rating', back_populates='picture')
 
-
     @hybrid_property
     def average_rating(self):
         if self.ratings:
