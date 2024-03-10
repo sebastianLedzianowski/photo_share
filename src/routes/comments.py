@@ -1,5 +1,5 @@
 from typing import List
-
+from src.services.admin import require_admin
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi_limiter.depends import RateLimiter
@@ -79,6 +79,8 @@ async def remove_comment(
     Returns:
         JSONResponse: Json response with result
     """
+    if not current_user.moderator and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= "Only moderators or administrators can delete comments.")
     comment = await repository_comments.remove_comment(comment_id, current_user, db)
     if comment is None:
         return JSONResponse(
