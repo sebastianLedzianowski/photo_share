@@ -205,6 +205,7 @@ async def upgrade_password(user: UserModel, new_password: str, db: Session):
     user.password = auth_service.get_password_hash(new_password)
     db.commit()
 
+
 async def get_user_by_username(username: str, db: Session):
     """
     Asynchronously retrieves a user by their username from the database.
