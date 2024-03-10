@@ -20,6 +20,7 @@ def create_x_pictures(session, no_of_pictures):
         pictures.append(picture)
     return pictures
 
+
 def test_upload_picture(user, session, client, mock_picture):
     new_user = login_user_token_created(user, session)
 

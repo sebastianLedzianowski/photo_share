@@ -59,7 +59,6 @@ class AdminUserUpdateModel(BaseModel):
     moderator: Optional[bool] = None
 
 
-
 class TokenModel(BaseModel):
     """
     Schema for the response containing access and refresh tokens.
@@ -105,6 +104,7 @@ class PictureResponse(PictureBase):
     average_rating: Optional[float] | None
     created_at: datetime
     tags: Optional[List[int]]
+    qr_code_picture: Optional[str] | None
 
     class Config:
         orm_mode = True

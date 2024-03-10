@@ -1,4 +1,4 @@
-from random import random
+from random import choice
 
 import cloudinary
 from src.services.secrets_manager import SecretsManager
@@ -24,4 +24,4 @@ def configure_cloudinary():
 def generate_random_string(length=30):
     """Generate a random alpha-numeric string of the specified length."""
     letters_and_digits = string.ascii_letters + string.digits
-    return ''.join(random.choice(letters_and_digits) for _ in range(length))
+    return ''.join(choice(letters_and_digits) for _ in range(length))
