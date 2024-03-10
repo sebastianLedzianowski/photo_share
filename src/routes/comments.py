@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.database.db import get_db
 from src.database.models import User
-from src.schemas import CommentModel, CommentResponse, PictureDB, CommentUpdate, ReactionName
+from src.schemas import CommentModel, CommentResponse, PictureDB, CommentUpdate
 from src.repository import comments as repository_comments
 from src.services.auth import auth_service
 
@@ -90,20 +90,4 @@ async def remove_comment(
         content={"message": "The comment deleted successfully"}
     )
 
-@router.post("/reactions/{reaction}", status_code=status.HTTP_201_CREATED)
-async def react_to_comment(
-        comment_id: int,
-        reaction: ReactionName,
-        current_user: User = Depends(auth_service.get_current_user),
-        db: Session = Depends(get_db)
-):
-    return await repository_comments.add_reaction_to_comment(comment_id, reaction, current_user, db)
 
-
-@router.delete("/reactions/{reaction}")
-async def remove_reaction(
-        comment_id: int,
-        current_user: User = Depends(auth_service.get_current_user),
-        db: Session = Depends(get_db)
-):
-    return await repository_comments.remove_reaction_from_comment(comment_id, current_user, db)

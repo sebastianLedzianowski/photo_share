@@ -56,13 +56,15 @@ class Picture(Base):
     __tablename__ = "picture"
 
     id = Column(Integer, primary_key=True, index=True)
+    picture_json = Column(JSON, nullable=True)
     picture_url = Column(String(255), nullable=False)
+    picture_edited_json = Column(JSON, nullable=True)
     picture_edited_url = Column(String(255), nullable=True)
-    picture_name = Column(String(255), nullable=True)
+    qr_code_picture = Column(String(255), nullable=True)
+    qr_code_picture_edited = Column(String(255), nullable=True)
     rating = Column(Integer, nullable=True)
     description = Column(String, nullable=True)
     created_at = Column('created_at', DateTime, default=func.now())
-
     user_id = Column('user_id', ForeignKey('user.id', ondelete='CASCADE'), default=None)
     user = relationship('User', back_populates='pictures')
     tags = relationship('Tag', secondary='picture_tags_association', back_populates='pictures')
@@ -148,6 +150,7 @@ class User(Base):
     admin = Column(Boolean, default=False)
     moderator = Column(Boolean, default=False)
     ban_status = Column(Boolean, default=False)
+    qr_code = Column(String(255), nullable=True)
     pictures = relationship('Picture', back_populates='user')
     comments = relationship('Comment', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')

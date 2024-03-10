@@ -70,7 +70,8 @@ def user():
     return UserTest(id=1,
                     username="example",
                     email="example@example.com",
-                    password="secret")
+                    password="secret"
+                    )
 
 
 @pytest.fixture(scope="function")
@@ -208,27 +209,78 @@ def mock_picture(width=250, height=250, color=(255, 0, 0)):
 
     return image_bytes_io
 
+
+
+
+#Models for Search Testing
+@pytest.fixture
+def user_s():
+    class UserTest:
+        def __init__(self, id, username, email):
+            self.id = id
+            self.username = username
+            self.email = email
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "username": self.username,
+                "email": self.email
+            }
+    return UserTest(
+                    id=1,
+                    username="example",
+                    email="example@example.com"
+                    )
+    
+@pytest.fixture
+def picture_s():
+    class PictureTest:
+        def __init__(self, id, user_id, rating, tags, picture_name, created_at):
+            self.id = id
+            self.user_id = user_id
+            self.rating = rating
+            self.tags = tags
+            self.picture_name = picture_name
+            self.created_at = created_at
+
+
+        def dict(self):
+            return {
+                "id": self.id,
+                "user_id": self.user_id,
+                "rating": self.rating,
+                "tags": self.tags,
+                "picture_name": self.picture_name,
+                "created_at": self.created_at
+            }
+    return PictureTest(
+                    id=1,
+                    user_id=1,
+                    rating=4,
+                    tags=['picture1_tag', 'picture1_tag2'],
+                    picture_name="picture1_name",
+                    created_at=datetime(now)
+                    )
+
 def fake_db_for_search_test():
     '''
     This fixture is used to fake db for search testing
     '''
     db = {"pictures": {}, "users": {}, "next_picture_id": 1, "next_user_id": 1}
-    def create_picture(user_id, rating, user, tags, picture_name, description, created_at):
+    def create_picture(user_id, rating, tags, picture_name, created_at):
         
             picture_id = db["next_picture_id"]
             db["pictures"][picture_id] = {
                 "id": picture_id,
                 "user_id": user_id,
                 "rating": rating,
-                "user": user.dict(),
                 "tags": tags,
                 "picture_name": picture_name,
-                "description": description,
                 "created_at": created_at
             }
             db["next_picture_id"] += 1
-            # Create a Picture object and add it to the database session
-            picture = Picture(id=picture_id,user_id=user_id, rating=rating, user=user.dict(), tags=tags, picture_name=picture_name, description=description, created_at=created_at)
+            picture = Picture(id=picture_id,user_id=user_id, rating=rating, tags=tags, picture_name=picture_name, created_at=created_at)
             db["pictures"][picture_id] = picture
             return picture
 
