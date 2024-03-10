@@ -90,9 +90,11 @@ class Rating(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     picture_id = Column(Integer, ForeignKey('picture.id'))
+    user_id = Column(Integer, ForeignKey('user.id'))
     rat = Column(Integer, nullable=True)
 
     picture = relationship('Picture', back_populates='ratings')
+    user = relationship('User', back_populates='ratings')
 
 class Comment(Base):
     """
@@ -178,6 +180,7 @@ class User(Base):
     comments = relationship('Comment', back_populates='user')
     sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.sender_id')
     received_messages = relationship('Message', back_populates='receiver', foreign_keys='Message.receiver_id')
+    ratings = relationship('Rating', back_populates='user')
 
     def dict(self):
         """
