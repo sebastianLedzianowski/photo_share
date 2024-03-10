@@ -95,8 +95,8 @@ class Rating(Base):
     __tablename__ = "rating"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    picture_id = Column(Integer, ForeignKey('picture.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
+    picture_id = Column(Integer, ForeignKey('picture.id', ondelete='CASCADE'))
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
     rat = Column(Integer, nullable=True)
 
     picture = relationship('Picture', back_populates='ratings')
@@ -118,8 +118,8 @@ class Comment(Base):
     __tablename__ = "comment"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    picture_id = Column(Integer, ForeignKey('picture.id'))
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    picture_id = Column(Integer, ForeignKey('picture.id', ondelete='CASCADE'))
     content = Column(String(255), nullable=False)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
@@ -142,7 +142,7 @@ class Reaction(Base):
     __tablename__ = "reactions"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    comment_id = Column(Integer, ForeignKey('comment.id'))
+    comment_id = Column(Integer, ForeignKey('comment.id', ondelete='CASCADE'))
     data = Column(JSON)
 
     comment = relationship('Comment', back_populates='reactions')
