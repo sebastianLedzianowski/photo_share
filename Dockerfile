@@ -12,4 +12,4 @@ COPY . /app
 
 ENV RUNNING_IN_DOCKER=true
 
-CMD ["/root/.cache/pypoetry/virtualenvs/photoshare-BS01HZAn-py3.11/bin/gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
