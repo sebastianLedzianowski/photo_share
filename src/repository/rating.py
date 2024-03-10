@@ -1,3 +1,4 @@
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from src.database.models import Rating, User
@@ -15,7 +16,7 @@ async def add_rating_to_picture(picture_id: int, rating: int, user: User, db: Se
     Returns:
         dict: A message indicating that the rating was successfully created or updated.
     """
-    rating_record = db.query(Rating).filter(Rating.picture_id == picture_id).first()
+    rating_record = db.query(Rating).filter(and_(Rating.picture_id == picture_id, Rating.user_id == user.id)).first()
     if rating_record:
         rating_record.rat = rating
     else:
@@ -37,7 +38,7 @@ async def remove_rating_from_picture(picture_id: int, user: User, db: Session):
         Returns:
             dict: A message indicating the outcome of the operation.
         """
-    rating_record = db.query(Rating).filter(Rating.picture_id == picture_id).first()
+    rating_record = db.query(Rating).filter(and_(Rating.picture_id == picture_id, Rating.user_id == user.id)).first()
     if rating_record:
         db.delete(rating_record)
         db.commit()
