@@ -3,11 +3,11 @@ from fastapi import requests
 import requests
 from pydantic import EmailStr
 
-from src.services.secrets_manager import get_secret
+from src.services.secrets_manager import SecretsManager
 from src.services.auth import auth_service
 
-MAILGUN_API_KEY = get_secret("MAILGUN_API_KEY")
-MAILGUN_DOMAIN = get_secret("MAILGUN_DOMAIN")
+MAILGUN_API_KEY = SecretsManager.get_secret("MAILGUN_API_KEY")
+MAILGUN_DOMAIN = SecretsManager.get_secret("MAILGUN_DOMAIN")
 MAILGUN_ENDPOINT = f'https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages'
 
 async def send_email(email: EmailStr,

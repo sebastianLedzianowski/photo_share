@@ -4,24 +4,29 @@ from src.database.models import Picture, User
 from fastapi import HTTPException
 
 
-async def upload_picture(url: str, version: str, picture_name: str, user: User, db: Session) -> Picture:
+async def upload_picture(picture_url: str, picture_json: dict, user: User, qr: str, db: Session) -> Picture:
+
     """
     Asynchronously uploads a picture to the database.
 
-    This function takes a URL, a user object, and a database session. It creates a new
-    Picture object with the provided URL and user ID, adds it to the database, commits
-    the transaction, and refreshes the session to retrieve the newly created picture.
+    This function takes a URL, a dictionary containing picture metadata (picture_json),
+    a user object, a URL for the QR code of the original picture, and a database session.
+    It creates a new Picture object with the provided URL, picture metadata, user ID,
+    and QR code URL, adds it to the database, commits the transaction, and refreshes
+    the session to retrieve the newly created picture.
 
     Parameters:
-    - url (str): The URL of the picture to upload.
+    - picture_url (str): The URL of the picture to upload.
+    - picture_json (dict): A dictionary containing metadata of the picture.
     - user (User): The user object associated with the picture.
+    - qr (str): The URL for the QR code of the original picture.
     - db (Session): The SQLAlchemy session used to interact with the database.
 
     Returns:
     - Picture: The newly uploaded Picture object.
     """
-    converted_picture_name = f"v{version}/{picture_name}"
-    picture = Picture(picture_url=url, user_id=user.id, picture_name=converted_picture_name)
+    
+    picture = Picture(picture_url=picture_url, picture_json=picture_json, user_id=user.id, qr_code_picture=qr)
     db.add(picture)
     db.commit()
     db.refresh(picture)
@@ -111,28 +116,33 @@ async def delete_picture(picture_id: int, db: Session) -> Picture | None:
     return picture
 
 
-async def upload_edited_picture(picture, edited_url, picture_id, db: Session) -> Picture | None:
+async def upload_edited_picture(picture: dict, picture_edited: dict, picture_edited_url: str, qr: str, db: Session) -> Picture | None:
     """
-    Upload the edited picture to the database and return the edited URL.
+    Uploads the edited picture to the database and returns the edited URL and QR code.
 
     Parameters:
-    - picture: The picture object to be updated with the edited URL.
-    - edited_url (str): The edited URL of the picture.
-    - picture_id (int): The ID of the picture being edited.
+    - picture (dict): The original picture object to be updated with the edited URL and QR code.
+    - picture_edited (dict): The edited picture object.
+    - picture_edited_url (str): The edited URL of the picture.
+    - qr (str): The QR code associated with the edited picture.
     - db (Session): An SQLAlchemy database session instance provided by the FastAPI dependency injection system.
 
     Returns:
-    - str: The edited URL of the picture.
+    - dict: A dictionary containing the edited URL and QR code.
 
     Raises:
     - HTTPException: If there is an issue committing the changes to the database.
     """
 
-    picture.picture_edited_url = edited_url
+    picture.picture_edited_url = picture_edited_url
+    picture.picture_edited_json = picture_edited
+    picture.qr_code_picture_edited = qr
     db.commit()
 
-    return edited_url
-
+    return {
+        "picture_edited_url": picture_edited_url,
+        "qr_code_picture_edited": qr
+    }
 
 async def validate_edit_parameters(picture_edit):
     """
@@ -145,6 +155,8 @@ async def validate_edit_parameters(picture_edit):
     - unsharp_mask (str): A string representing the unsharp mask value. Must be between 1 and 2000.
     - brightness (str): A string representing the brightness value. Must be between -99 and 100.
     - gamma (str): A string representing the gamma correction value. Must be between -50 and 150.
+    - grayscale (bool): A boolean indicating whether to apply grayscale effect. If True, the effect is applied.
+    - redeye (bool): A boolean indicating whether to apply red-eye effect. If True, the effect is applied.
     - gen_replace (str): A string representing the replacement transformation. If specified, 'gen_remove' should not be provided.
     - gen_remove (str): A string representing the removal transformation. If specified, 'gen_replace' should not be provided.
 
@@ -192,10 +204,15 @@ async def validate_edit_parameters(picture_edit):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    if not isinstance(picture_edit.grayscale, bool):
+        raise HTTPException(status_code=400, detail="'grayscale' must be a boolean value.")
+
+    if not isinstance(picture_edit.redeye, bool):
+        raise HTTPException(status_code=400, detail="'redeye' must be a boolean value.")
+    
     try:
         if picture_edit.gen_replace != "from_null;to_null" and picture_edit.gen_remove != "prompt_null":
-            raise HTTPException(status_code=400,
-                                detail="You can only specify either gen_replace or gen_remove, not both.")
+            raise HTTPException(status_code=400, detail="You can only specify either gen_replace or gen_remove, not both.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

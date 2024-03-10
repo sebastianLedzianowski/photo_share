@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class UserModel(BaseModel):
@@ -59,7 +59,6 @@ class AdminUserUpdateModel(BaseModel):
     moderator: Optional[bool] = None
 
 
-
 class TokenModel(BaseModel):
     """
     Schema for the response containing access and refresh tokens.
@@ -77,7 +76,6 @@ class RequestEmail(BaseModel):
 
 
 class PictureBase(BaseModel):
-    rating: Optional[int] | None
     description: Optional[str] | None
 
 
@@ -86,15 +84,14 @@ class PictureModel(PictureBase):
 
 
 class PictureDB(BaseModel):
-
     id: int
-    picture_url: str | None
-    rating: Optional[int] | None
-    description: Optional[str] | None
+    picture_url: Optional[str]
+    rating: Optional[int]
+    description: Optional[str]
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class PictureDescription(BaseModel):
@@ -104,11 +101,13 @@ class PictureDescription(BaseModel):
 class PictureResponse(PictureBase):
     id: int
     picture_url: str | None
+    average_rating: Optional[float] | None
     created_at: datetime
     tags: Optional[List[int]]
+    qr_code_picture: Optional[str] | None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class PictureSearch(BaseModel):
@@ -118,6 +117,13 @@ class PictureSearch(BaseModel):
     picture_name: Optional[List[str]] = None
     tags: Optional[List[str]] = None
 
+
+class RatingValue(IntEnum):
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
 
 class MessageBase(BaseModel):
     sender_id: int

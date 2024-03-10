@@ -3,31 +3,74 @@ from typing import Type, Union
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from src.database.models import Comment, User, Picture, Reaction
-from src.schemas import CommentModel, PictureDB, CommentResponse, CommentUpdate
+from src.database.models import Comment, User
+from src.schemas import CommentModel, PictureDB, CommentUpdate
 
 
 async def create_comment(body: CommentModel, picture: PictureDB, user: User, db: Session) -> Comment:
+    """
+    The create_comment function creates a new comment in the database.
+    Parameters:
+        body (CommentModel): The CommentModel object containing the data to be added to the database.
+        picture (PictureDB): The PictureDB object that is being commented on.
+        user (User): The User who created this comment.
+        db (Session): The SQLAlchemy session used to interact with the database.
+
+    Returns:
+        A new comment object.
+    """
     comment = Comment(user_id=user.id,
                       picture_id=picture.id,
                       content=body.content,
                       created_at=datetime.now()
                       )
+
     db.add(comment)
     db.commit()
     db.refresh(comment)
     return comment
 
 
-async def get_comment(comment_id: int, user: User, db: Session) -> Comment:
+async def get_comment(comment_id: int, user: User, db: Session) -> Type[Comment]:
+    """
+    The get_comment function takes in a comment_id and user object, and returns the Comment object with that id.
+    Parameters:
+        comment_id (int): The id of the desired Comment.
+        user (User): The User who owns the desired Comment.
+        db (Session): The SQLAlchemy session used to interact with the database.
+
+    Returns:
+        The comment with the given id.
+    """
     return db.query(Comment).filter(and_(Comment.id == comment_id, Comment.user_id == user.id)).first()
 
 
 async def get_comments(picture_id: int, skip: int, limit: int, db: Session) -> list[Type[Comment]]:
+    """
+    The get_comments function takes in a picture_id, skip, limit and db.
+    It returns all comments associated with the given picture_id.
+    Parameters:
+        picture_id (int): Filter the comments by picture_id
+        skip (int): Skip a number of comments
+        limit (int): Limit the number of comments that are returned
+        db (Session): Pass the database session to the function
+    Returns:
+        A list of comment objects
+    """
     return db.query(Comment).filter(Comment.picture_id == picture_id).offset(skip).limit(limit).all()
 
 
 async def update_comment(comment_id: int, body: CommentUpdate, user: User, db: Session) -> Comment | None:
+    """
+    The update_comment function updates a comment in the database.
+    Parameters:
+        comment_id (int): The id of the comment to update.
+        body (CommentUpdate): The updated content for the Comment object.
+        user (User): Check if the user is the owner of the comment
+        db (Session): The SQLAlchemy session used to interact with the database.
+    Returns:
+        The updated comment
+    """
     comment = db.query(Comment).filter(and_(Comment.id == comment_id, Comment.user_id == user.id)).first()
     if comment:
         comment.content = body.content
@@ -37,6 +80,17 @@ async def update_comment(comment_id: int, body: CommentUpdate, user: User, db: S
 
 
 async def remove_comment(comment_id: int, user: User, db: Session) -> Union[dict, None]:
+    """
+    The remove_comment function takes in a comment_id, user and db.
+    If the user is an admin or moderator, it will delete the comment from the database.
+    Parameters:
+        comment_id (int): Specify the id of the comment to be deleted
+        user (User): Check if the user is an admin or moderator
+        db (Session): The SQLAlchemy session used to interact with the database.
+    Returns:
+        The deleted comment if the user is admin or moderator, otherwise returns a message saying that you can't delete
+        comments.
+    """
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
     if user.admin or user.moderator:
         if comment:
@@ -45,45 +99,3 @@ async def remove_comment(comment_id: int, user: User, db: Session) -> Union[dict
         return comment
     else:
         return {"message": "You can't delete the comment."}
-
-
-async def add_reaction_to_comment(comment_id: int, reaction: str, user: User, db: Session):
-    reaction_record = db.query(Reaction).filter(Reaction.comment_id == comment_id).first()
-    if not reaction_record:
-        new_reaction = Reaction(comment_id=comment_id, data={reaction: [user.id]})
-        db.add(new_reaction)
-    else:
-        reaction_data = reaction_record.data
-        reaction_data_copy = reaction_data.copy()
-        for react, users in reaction_data_copy.items():
-            if user.id in users:
-                users.remove(user.id)
-            if not users:
-                del reaction_data[react]
-        if reaction not in reaction_data:
-            reaction_data[reaction] = [user.id]
-        else:
-            reaction_data[reaction].append(user.id)
-        db.query(Reaction).filter(Reaction.comment_id == comment_id).update({"data": reaction_data})
-    db.commit()
-    return {"message": f"The reaction was created"}
-
-
-async def remove_reaction_from_comment(comment_id: int, user: User, db: Session):
-    reaction_record = db.query(Reaction).filter(Reaction.comment_id == comment_id).first()
-    if not reaction_record:
-        return {"message": "No reactions for comment"}
-    else:
-        reaction_data = reaction_record.data
-        reaction_data_copy = reaction_data.copy()
-        for react, users in reaction_data_copy.items():
-            if user.id in users:
-                users.remove(user.id)
-            if not users:
-                del reaction_data[react]
-            if reaction_data:
-                db.query(Reaction).filter(Reaction.comment_id == comment_id).update({"data": reaction_data})
-            else:
-                db.delete(reaction_record)
-        db.commit()
-

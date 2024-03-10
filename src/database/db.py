@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.services.secrets_manager import get_secret
+from src.services.secrets_manager import SecretsManager
 
-SQLALCHEMY_DATABASE_URL = get_secret("SQLALCHEMY_DATABASE_URL")
+SQLALCHEMY_DATABASE_URL = SecretsManager.get_secret("SQLALCHEMY_DATABASE_URL")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

@@ -1,26 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2>User Details</h2>
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">User Information</h5>
-            <p class="card-text"><strong>ID:</strong> {{ user.id }}</p>
-            <p class="card-text"><strong>Username:</strong> {{ user.username }}</p>
-            <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
-            <p class="card-text"><strong>Created At:</strong> {{ user.created_at }}</p>
+    {% if  current_user.id == user.id or current_user.admin %}
+        <div class="container mt-5">
+            <h2>User Details</h2>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">User Information</h5>
+                    <p class="card-text"><strong>ID:</strong> {{ user.id }}</p>
+                    <p class="card-text"><strong>Username:</strong> {{ user.username }}</p>
+                    <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
+                    <p class="card-text"><strong>Created At:</strong> {{ user.created_at }}</p>
 
-            <p class="card-text"><strong>Avatar:</strong> <img src="{{ user.avatar }}" width="250" height="250" style="display: block; margin: auto;"></p>
+                    {% if user.avatar %}
+                    <p class="card-text"><strong>Avatar:</strong> <img src="{{ user.avatar }}" width="250" height="250" style="display: block; margin: auto;"></p>
+                    {% endif %}
 
-            <!-- Example of conditional rendering -->
-            {% if user.admin %}
-            <p class="card-text text-danger"><strong>Admin User</strong></p>
+                </div>
+            </div>
+            <!-- Link to go back or navigate to other pages -->
+            {% if current_user.admin %}
+                <a href="/users" class="btn btn-primary mt-3">Back to Users</a>
+            {% else %}
+                <a href="/" class="btn btn-primary mt-3">Back to mainpage</a>
             {% endif %}
 
-        </div>
-    </div>
-    <!-- Link to go back or navigate to other pages -->
-    <a href="/users" class="btn btn-primary mt-3">Back to Users</a>
-</div>
+    {% endif %}
+
 {% endblock %}

@@ -222,22 +222,6 @@ def test_request_password_reset(user, session, client):
     assert data["message"] == "Password reset email sent."
 
 
-# def test_reset_password_token_get(user, session, client, monkeypatch):
-#     create_user_db(user, session)
-#
-#     async def mock_reset_password_token(token):
-#         return HTMLResponse
-#
-#     monkeypatch.setattr(auth_service,
-#                         "get_email_from_token",
-#                         AsyncMock(side_effect=mock_reset_password_token))
-#
-#     response = client.get("api/auth/reset_password/reset_password_token")
-#
-#     assert response.status_code == 200
-#     assert isinstance(response, HTMLResponse)
-
-
 def test_reset_password_token_push_user_is_none(user, session, client, monkeypatch):
     create_user_db(user, session)
 
