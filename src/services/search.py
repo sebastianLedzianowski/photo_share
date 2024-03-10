@@ -14,7 +14,7 @@ from src.services.auth import Auth
 get_current_user = Auth.get_current_user
 
 
-router = APIRouter()
+router = APIRouter(tags=["search"])
     
     
 class PictureSearchService:
