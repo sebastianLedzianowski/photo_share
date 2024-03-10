@@ -77,8 +77,6 @@ async def get_all_pictures(
     """
 
     pictures = await repository_pictures.get_all_pictures(skip=skip, limit=limit, db=db)
-    for picture in pictures:
-        logging.info(f"Picture ID: {picture.id}, Rating: {picture.average_rating}")
     return pictures
 
 
