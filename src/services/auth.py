@@ -15,13 +15,13 @@ from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
 
-from src.services.secrets_manager import get_secret
+from src.services.secrets_manager import SecretsManager
 
-REDIS_HOST = get_secret("REDIS_HOST")
-REDIS_PORT = get_secret("REDIS_PORT")
-REDIS_PASSWORD = get_secret("REDIS_PASSWORD")
-SECRET_KEY = get_secret("SECRET_KEY")
-ALGORITHM = get_secret("ALGORITHM")
+REDIS_HOST = SecretsManager.get_secret("REDIS_HOST")
+REDIS_PORT = SecretsManager.get_secret("REDIS_PORT")
+REDIS_PASSWORD = SecretsManager.get_secret("REDIS_PASSWORD")
+SECRET_KEY = SecretsManager.get_secret("SECRET_KEY")
+ALGORITHM = SecretsManager.get_secret("ALGORITHM")
 
 
 class Auth:

@@ -1,11 +1,12 @@
+from random import random
+
 import cloudinary
-from src.services.secrets_manager import get_secret
-import random
+from src.services.secrets_manager import SecretsManager
 import string
 
-CLOUDINARY_NAME = get_secret("CLOUDINARY_NAME")
-CLOUDINARY_API_KEY = get_secret("CLOUDINARY_API_KEY")
-CLOUDINARY_API_SECRET = get_secret("CLOUDINARY_API_SECRET")
+CLOUDINARY_NAME = SecretsManager.get_secret("CLOUDINARY_NAME")
+CLOUDINARY_API_KEY = SecretsManager.get_secret("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = SecretsManager.get_secret("CLOUDINARY_API_SECRET")
 
 
 def configure_cloudinary():
