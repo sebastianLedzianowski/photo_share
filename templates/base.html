@@ -42,11 +42,14 @@
                     <button class="btn btn-info me-3" onclick="window.location.href='/users/'">Admin Panel</button>
                 {% elif user.id %}
                     <button class="btn btn-info me-3" onclick="window.location.href='/users/{{ user.id }}'">User Page</button>
-
-
                 {% endif %}
 
-                <button class="btn btn-secondary my-2 my-sm-0 ms-2" onclick="window.location.href='/login'">Login</button>
+                <!-- Logout button, visible only if user is logged in -->
+                {% if user.id %}
+                    <button class="btn btn-danger" onclick="window.location.href='/logout'">Logout</button>
+                {% else %}
+                    <button class="btn btn-secondary my-2 my-sm-0 ms-2" onclick="window.location.href='/login'">Login</button>
+                {% endif %}
             </div>
         </div>
     </nav>

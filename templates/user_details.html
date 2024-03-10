@@ -12,8 +12,9 @@
                     <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
                     <p class="card-text"><strong>Created At:</strong> {{ user.created_at }}</p>
 
+                    {% if user.avatar %}
                     <p class="card-text"><strong>Avatar:</strong> <img src="{{ user.avatar }}" width="250" height="250" style="display: block; margin: auto;"></p>
-
+                    {% endif %}
 
                 </div>
             </div>

@@ -27,11 +27,15 @@
                                 <td>{{ users.created_at }}</td>
                                 <td>
 
-                                <a href="/users/{{ user.id }}" class="btn btn-primary">View</a>
+                                    <a href="/users/{{ user.id }}" class="btn btn-primary">View</a>
 
-                                <form action="/api/users/delete/{{ user.id }}" method="post" style="display: inline;">
-                                    <button type="submit" class="btn btn-danger">Delete</button>
-                                </form>
+                                    <form action="/api/users/ban/{{ user.id }}" method="post" style="display: inline;">
+                                        <button type="submit" class="btn btn-warning">Ban User</button>
+                                    </form>
+
+                                    <form action="/api/users/delete/{{ user.id }}" method="post" style="display: inline;">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
 
                                 </td>
                             </tr>
