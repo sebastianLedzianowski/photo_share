@@ -6,21 +6,29 @@
         <p style="color: red">{{ error }}</p>
     {% endfor %}
 
-    <div class="container">
+    <style>
+    .form-layout {
+
+    width: 500px;
+
+    }
+    </style>
+
+
+    <div class="container form-layout">
         <form action="/login" method="post">
                 <p><label for="email">Email</label></p>
-
             <label>
                 <input type="email" required class="form-control" name="email" aria-describedby="emailhelp">
             </label>
-
             <p><label for="">Password</label></p>
-
             <label>
                 <input type="password" required class="form-control" name="password">
             </label>
-
-            <input type="submit" value="Submit">
+            <br>
+            <br>
+            <input class="btn btn-primary" type="submit" value="Submit">
+            <br>
         </form>
     </div>
 
