@@ -81,14 +81,18 @@ class Picture(Base):
 
 class Rating(Base):
     """
-        Represents a rating entity associated with a picture.
+    Represents a rating entity associated with a specific picture and user.
 
-        Attributes:
-            id (int): The unique identifier for the rating.
-            picture_id (int): The identifier of the picture this rating is associated with.
-            rat (int): The rating rat in int format.
-            picture (relationship): The Picture object this rating is associated with.
-        """
+    Attributes:
+        id (int): The unique identifier for the rating instance.
+        picture_id (int): The identifier of the picture this rating is associated with.
+        user_id (int): The identifier of the user who provided the rating.
+        rat (int): The numerical rating value. This value is optional and can be null to represent the absence of a rating.
+        picture (relationship): Establishes a relationship to the Picture object this rating is associated with. Allows direct access to the Picture instance.
+        user (relationship): Establishes a relationship to the User object who provided this rating. Allows direct access to the User instance.
+
+    The `picture` and `user` relationships create a direct link between the Rating instance and the associated Picture and User instances, respectively. This setup facilitates easy navigation and manipulation of related data within the application's ORM layer.
+    """
     __tablename__ = "rating"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -99,23 +103,6 @@ class Rating(Base):
     picture = relationship('Picture', back_populates='ratings')
     user = relationship('User', back_populates='ratings')
 
-class Rating(Base):
-    """
-        Represents a rating entity associated with a picture.
-
-        Attributes:
-            id (int): The unique identifier for the rating.
-            picture_id (int): The identifier of the picture this rating is associated with.
-            data (JSON): The rating data in JSON format.
-            picture (relationship): The Picture object this rating is associated with.
-        """
-    __tablename__ = "rating"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    picture_id = Column(Integer, ForeignKey('picture.id'))
-    data = Column(JSON)
-
-    picture = relationship('Picture', back_populates='rating')
 
 class Comment(Base):
     """
