@@ -67,11 +67,10 @@ def client(session):
 @pytest.fixture
 def picture():
     class PictureTest:
-        def __init__(self, id, user_id, rating, user, tags, picture_name, created_at):
+        def __init__(self, id, user_id, rating, tags, picture_name, created_at):
             self.id = id
             self.user_id = user_id
             self.rating = rating
-            self.user = user
             self.tags = tags
             self.picture_name = picture_name
             self.created_at = created_at
@@ -82,7 +81,6 @@ def picture():
                 "id": self.id,
                 "user_id": self.user_id,
                 "rating": self.rating,
-                "user": self.user.dict(),
                 "tags": self.tags,
                 "picture_name": self.picture_name,
                 "created_at": self.created_at
@@ -91,7 +89,6 @@ def picture():
                     id=1,
                     user_id=1,
                     rating=4,
-                    user=user,
                     tags=['picture1_tag', 'picture1_tag2'],
                     picture_name="picture1_name",
                     created_at=datetime(2022, 1, 1)
@@ -113,9 +110,10 @@ def user():
                 "email": self.email
             }
 
-    return UserTest(id=1,
-                    username="example",
-                    email="example@example.com"
+    return UserTest(
+        id=1,
+        username="example",
+        email="example@example.com"
     )
     
 
@@ -199,7 +197,6 @@ class TestPictureSearch(unittest.TestCase):
         # Define the request payload
         payload = {
             "search_params": {
-                # Assuming PictureSearch schema expects certain fields, fill them accordingly
                 "keyword": "sunset",
                 "tags": ["nature", "evening"],
                 "id": ["1"],
