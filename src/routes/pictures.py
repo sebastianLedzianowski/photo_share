@@ -39,6 +39,9 @@ async def upload_picture(
     - The URL of the uploaded picture as a PictureDB instance.
     """
 
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access to upload picture")
+
     configure_cloudinary()
     picture_name = generate_random_string()
     picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
@@ -56,6 +59,7 @@ async def upload_picture(
 async def get_all_pictures(
         skip: int = 0,
         limit: int = 20,
+        current_user: User = Depends(auth_service.get_current_user),
         db: Session = Depends(get_db)
 ) -> list[Type[Picture]]:
     """
@@ -66,12 +70,16 @@ async def get_all_pictures(
     Parameters:
     - skip (int): The number of pictures to skip.
     - limit (int): The maximum number of pictures to retrieve.
+    - current_user (User): The current user authenticated via the authentication service.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency
       injection system.
 
     Returns:
     - A list of PictureDB instances representing the retrieved pictures.
     """
+
+    if not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access to get all pictures")
 
     pictures = await repository_pictures.get_all_pictures(skip=skip, limit=limit, db=db)
     return pictures
@@ -80,6 +88,7 @@ async def get_all_pictures(
 @router.get("/{picture_id}", response_model=PictureResponse)
 async def get_one_picture(
         picture_id: int,
+        current_user: User = Depends(auth_service.get_current_user),
         db: Session = Depends(get_db)
 ) -> PictureResponse:
     """
@@ -89,6 +98,7 @@ async def get_one_picture(
 
     Parameters:
     - picture_id (int): The ID of the picture to retrieve.
+    - current_user (User): The current user authenticated via the authentication service.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency
       injection system.
 
@@ -99,7 +109,13 @@ async def get_one_picture(
     picture = await repository_pictures.get_one_picture(picture_id=picture_id, db=db)
     if picture is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
-    return picture
+
+
+    if current_user.admin or picture.user_id == current_user.id:
+        return picture
+    else:
+
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access to picture")
 
 
 @router.put("/{picture_id}", response_model=PictureResponse)
@@ -124,14 +140,18 @@ async def update_picture(
     Returns:
     - The URL of the updated picture as a PictureDB instance.
     """
-
     configure_cloudinary()
 
     random_string = generate_random_string()
 
-    picture = cloudinary.uploader.upload(picture.file, public_id=f'picture/{current_user.email}', overwrite=True)
+    picture_data = await repository_pictures.get_one_picture(picture_id, db)
+    if not picture_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
+    if current_user.id != picture_data.user_id and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to update this picture")
 
-    url = cloudinary.CloudinaryImage(f'picture/{random_string}').build_url(version=picture.get('version'))
+    picture_uploaded = cloudinary.uploader.upload(picture.file, public_id=f'picture/{current_user.email}', overwrite=True)
+    url = cloudinary.CloudinaryImage(f'picture/{random_string}').build_url(version=picture_uploaded.get('version'))
 
     picture_url = await repository_pictures.update_picture(picture_id=picture_id, url=url, user=current_user, db=db)
 
@@ -143,6 +163,7 @@ async def update_picture(
 @router.delete("/{picture_id}", response_model=PictureResponse)
 async def delete_picture(
         picture_id: int,
+        current_user: User = Depends(auth_service.get_current_user),
         db: Session = Depends(get_db)
 ) -> PictureDB:
     """
@@ -152,6 +173,7 @@ async def delete_picture(
 
     Parameters:
     - picture_id (int): The ID of the picture to delete.
+    - current_user (User): The current user authenticated via the authentication service.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency
       injection system.
 
@@ -159,15 +181,29 @@ async def delete_picture(
     - The PictureDB instance representing the deleted picture.
     """
 
-    picture = await repository_pictures.delete_picture(picture_id=picture_id, db=db)
+    picture = await repository_pictures.get_one_picture(picture_id=picture_id, db=db)
 
     if picture is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
-    return picture
+
+    if current_user.id != picture.user_id and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this picture")
+
+    deleted_picture = await repository_pictures.delete_picture(picture_id=picture_id, db=db)
+
+    if deleted_picture is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found")
+
+    return deleted_picture
 
 
 @router.post("/edit/{id}", status_code=status.HTTP_201_CREATED)
-async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session = Depends(get_db)):
+async def edit_picture(
+        picture_id: int,
+        picture_edit: PictureEdit,
+        current_user: User = Depends(auth_service.get_current_user),
+        db: Session = Depends(get_db)
+):
     """
     Edit a picture based on the specified parameters.
 
@@ -183,6 +219,7 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
         - redeye (bool): A boolean indicating whether to apply red-eye effect. If True, the effect is applied.
         - gen_replace (str): A string representing the replacement transformation. If specified, 'gen_remove' should not be provided.
         - gen_remove (str): A string representing the removal transformation. If specified, 'gen_replace' should not be provided.
+    - current_user (User): The current user authenticated via the authentication service.
     - db (Session, optional): An SQLAlchemy database session instance provided by the FastAPI dependency injection system.
 
     Returns:
@@ -191,6 +228,11 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
     Raises:
     - HTTPException: If an error occurs during the editing process, such as validation failure or database access issues.
     """
+
+    if not current_user.admin:
+        picture_db = await repository_pictures.get_one_picture(picture_id, db)
+        if picture_db.user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access to edit picture")
 
     configure_cloudinary()
 
@@ -201,8 +243,7 @@ async def edit_picture(picture_id: int, picture_edit: PictureEdit, db: Session =
     picture_version = picture['version']
 
     transformation = await repository_pictures.parse_transform_effects(picture_edit)
-    transformation_url = cloudinary.utils.cloudinary_url(picture_public_id, transformation=transformation
-    )[0]
+    transformation_url = cloudinary.utils.cloudinary_url(picture_public_id, transformation=transformation)[0]
 
     picture_edited = cloudinary.uploader.upload(transformation_url, version=picture_version, public_id=f'{picture_public_id}_edited', overwrite=True)
     picture_edited_url = cloudinary.CloudinaryImage(picture_edited['public_id']).build_url(version=picture_version)
