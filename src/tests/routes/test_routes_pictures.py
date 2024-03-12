@@ -21,8 +21,8 @@ def create_x_pictures(session, no_of_pictures):
     return pictures
 
 
-def test_upload_picture(user, session, client, mock_picture):
-    new_user = login_user_token_created(user, session)
+def test_upload_picture(admin, session, client, mock_picture):
+    new_user = login_user_token_created(admin, session)
 
     mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
 
@@ -45,13 +45,20 @@ def test_upload_picture(user, session, client, mock_picture):
         assert "created_at" in data
 
 
-def test_get_all_pictures(user, session, client):
+def test_get_all_pictures(admin, session, client):
+    new_user = login_user_token_created(admin, session)
     no_of_pictures = 4
     pictures = create_x_pictures(session, no_of_pictures)
 
     with patch.object(auth_service, 'r') as r_mock:
         r_mock.get.return_value = None
-        response = client.get("/api/pictures/")
+        response = client.get(
+            "/api/pictures/",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user['access_token']}"
+            },
+        )
         data = response.json()
 
         assert response.status_code == 200, response.text
@@ -64,14 +71,21 @@ def test_get_all_pictures(user, session, client):
             assert "created_at" in data[i]
 
 
-def test_get_one_picture_found(user, session, client):
+def test_get_one_picture_found(admin, session, client):
+    new_user = login_user_token_created(admin, session)
     no_of_pictures = 4
     no_to_get = no_of_pictures - 1
     pictures = create_x_pictures(session, no_of_pictures)
 
     with patch.object(auth_service, 'r') as r_mock:
         r_mock.get.return_value = None
-        response = client.get(f"/api/pictures/{no_to_get}")
+        response = client.get(
+            f"/api/pictures/{no_to_get}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user['access_token']}"
+            },
+        )
         data = response.json()
 
         assert response.status_code == 200, response.text
@@ -81,20 +95,27 @@ def test_get_one_picture_found(user, session, client):
         assert "created_at" in data
 
 
-def test_get_one_picture_not_found(user, session, client):
+def test_get_one_picture_not_found(admin, session, client):
+    new_user = login_user_token_created(admin, session)
     no_of_pictures = 4
     no_to_get = no_of_pictures + 100
     pictures = create_x_pictures(session, no_of_pictures)
 
     with patch.object(auth_service, 'r') as r_mock:
         r_mock.get.return_value = None
-        response = client.get(f"api/pictures/{no_to_get}")
+        response = client.get(
+            f"api/pictures/{no_to_get}",
+            headers={
+                'accept': 'application/json',
+                "Authorization": f"Bearer {new_user['access_token']}"
+            },
+        )
 
         assert response.status_code == 404, response.text
 
 
-def test_update_picture_found(user, session, client, mock_picture):
-    new_user = login_user_token_created(user, session)
+def test_update_picture_found(admin, session, client, mock_picture):
+    new_user = login_user_token_created(admin, session)
     mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
     no_of_pictures = 4
     no_to_update = no_of_pictures - 1
@@ -118,8 +139,8 @@ def test_update_picture_found(user, session, client, mock_picture):
         assert "created_at" in data
 
 
-def test_update_picture_not_found(user, session, client, mock_picture):
-    new_user = login_user_token_created(user, session)
+def test_update_picture_not_found(admin, session, client, mock_picture):
+    new_user = login_user_token_created(admin, session)
     mock_picture1 = {"picture": ("test_image.png", mock_picture, "image/png")}
     no_of_pictures = 4
     no_to_update = no_of_pictures + 100
@@ -139,8 +160,8 @@ def test_update_picture_not_found(user, session, client, mock_picture):
         assert response.status_code == 404, response.text
 
 
-def test_delete_picture_found(user, session, client):
-    new_user = login_user_token_created(user, session)
+def test_delete_picture_found(admin, session, client):
+    new_user = login_user_token_created(admin, session)
     no_of_pictures = 4
     no_to_delete = no_of_pictures - 1
     pictures = create_x_pictures(session, no_of_pictures)
@@ -162,8 +183,8 @@ def test_delete_picture_found(user, session, client):
         assert "created_at" in data
 
 
-def test_delete_picture_not_found(user, session, client):
-    new_user = login_user_token_created(user, session)
+def test_delete_picture_not_found(admin, session, client):
+    new_user = login_user_token_created(admin, session)
     no_of_pictures = 4
     no_to_delete = no_of_pictures + 100
     pictures = create_x_pictures(session, no_of_pictures)
