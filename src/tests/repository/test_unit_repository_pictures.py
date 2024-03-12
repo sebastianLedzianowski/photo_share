@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import MagicMock
 from datetime import datetime
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
+
 
 from src.database.models import Picture, User
 from src.repository.pictures import (
@@ -10,6 +12,9 @@ from src.repository.pictures import (
     get_one_picture,
     update_picture,
     delete_picture,
+    upload_edited_picture,
+    validate_edit_parameters,
+    parse_transform_effects,
 )
 
 
@@ -122,3 +127,134 @@ class TestUnitRepositoryPictures(unittest.IsolatedAsyncioTestCase):
         self.session.query().filter().first.return_value = None
         result = await delete_picture(picture_id=picture.id, db=self.session)
         self.assertIsNone(result)
+
+    async def test_validate_edit_parameters_valid(self):
+        picture_edit = MagicMock()
+        picture_edit.improve = "50"
+        picture_edit.contrast = "0"
+        picture_edit.unsharp_mask = "500"
+        picture_edit.brightness = "10"
+        picture_edit.gamma = "50"
+        picture_edit.grayscale = False
+        picture_edit.redeye = False
+        picture_edit.gen_replace = "black"
+        picture_edit.gen_remove = "prompt_null"
+
+        await validate_edit_parameters(picture_edit)
+
+
+    async def test_parse_transform_effects(self):
+        picture_edit = MagicMock()
+        picture_edit.improve = "0"
+        picture_edit.contrast = "0"
+        picture_edit.unsharp_mask = "500"
+        picture_edit.brightness = "10"
+        picture_edit.gamma = "50"
+        picture_edit.grayscale = False
+        picture_edit.redeye = False
+        picture_edit.gen_replace = "from_null;to_null"
+        picture_edit.gen_remove = "prompt_null"
+
+        expected_effects = [
+            {'effect': 'unsharp_mask:500'},
+            {'effect': 'brightness:10'},
+            {'effect': 'gamma:50'}
+        ]
+
+        result = await parse_transform_effects(picture_edit)
+        self.assertEqual(result, expected_effects)
+
+        picture_edit.gen_remove = "prompt_background"
+
+        expected_effects_2 = [
+            {'effect': 'gen_remove:prompt_background'},
+            {'effect': 'unsharp_mask:500'},
+            {'effect': 'brightness:10'},
+            {'effect': 'gamma:50'}
+        ]
+
+        result_2 = await parse_transform_effects(picture_edit)
+        self.assertEqual(result_2, expected_effects_2)
+        
+
+    async def test_upload_edited_picture(self):
+        picture = MagicMock()
+        picture.picture_edited_url = None
+        picture.picture_edited_json = None
+        picture.qr_code_picture_edited = None
+
+        picture_edited = MagicMock()
+        picture_edited_url = "http://edited_picture.com"
+        qr = "http://edited_qr_code.com"
+
+        db_session = MagicMock(spec=Session)
+
+        result = await upload_edited_picture(picture, picture_edited, picture_edited_url, qr, db_session)
+
+        self.assertEqual(result["picture_edited_url"], picture_edited_url)
+        self.assertEqual(result["qr_code_picture_edited"], qr)
+
+    async def test_validate_edit_parameters_invalid_improve(self):
+        # Test dla invalid improve value
+        picture_edit = MagicMock()
+        picture_edit.improve = "200"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_contrast(self):
+        # Test dla invalid contrast value
+        picture_edit = MagicMock()
+        picture_edit.contrast = "200"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_unsharp_mask(self):
+        # Test dla invalid unsharp_mask value
+        picture_edit = MagicMock()
+        picture_edit.unsharp_mask = "5000"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_brightness(self):
+        # Test dla invalid brightness value
+        picture_edit = MagicMock()
+        picture_edit.brightness = "200"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_gamma(self):
+        # Test dla invalid gamma value
+        picture_edit = MagicMock()
+        picture_edit.gamma = "200"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_grayscale(self):
+        # Test dla invalid grayscale value
+        picture_edit = MagicMock()
+        picture_edit.grayscale = "invalid"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_redeye(self):
+        # Test dla invalid redeye value
+        picture_edit = MagicMock()
+        picture_edit.redeye = "invalid"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
+
+    async def test_validate_edit_parameters_invalid_gen_replace_and_gen_remove(self):
+        # Test dla invalid gen_replace and gen_remove values
+        picture_edit = MagicMock()
+        picture_edit.gen_replace = "from_null;to_null"
+        picture_edit.gen_remove = "prompt_null"
+
+        with self.assertRaises(HTTPException):
+            await validate_edit_parameters(picture_edit)
