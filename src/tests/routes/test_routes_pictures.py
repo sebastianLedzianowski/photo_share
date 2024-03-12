@@ -1,15 +1,15 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 from main import app
 from src.database.models import Picture
 from src.services.auth import auth_service
 from src.tests.conftest import login_user_token_created
+from src.routes import pictures
 
 client = TestClient(app)
-
 
 def create_x_pictures(session, no_of_pictures):
     pictures = []
@@ -179,3 +179,47 @@ def test_delete_picture_not_found(user, session, client):
         )
 
         assert response.status_code == 404, response.text
+
+@pytest.mark.asyncio
+async def test_edit_picture(session):
+    picture_id = 1
+    picture_edit = MagicMock()
+    picture_edit.improve = "0"
+    picture_edit.contrast = "0"
+    picture_edit.unsharp_mask = "500"
+    picture_edit.brightness = "10"
+    picture_edit.gamma = "50"
+    picture_edit.grayscale = False
+    picture_edit.redeye = False
+    picture_edit.gen_replace = "from_null;to_null"
+    picture_edit.gen_remove = "prompt_null"
+    picture_mock = MagicMock()
+    picture_mock.picture_json = {"public_id": "public_id", "version": "version"}
+
+    with patch("src.routes.pictures.repository_pictures.get_one_picture", return_value=picture_mock) as mock_get_one_picture, \
+         patch("src.routes.pictures.cloudinary.uploader.upload") as mock_cloudinary_upload, \
+         patch("src.routes.pictures.generate_qr_and_upload_to_cloudinary") as mock_generate_qr_and_upload, \
+         patch("src.routes.pictures.cloudinary.CloudinaryImage") as mock_cloudinary_image:
+
+        expected_edited_data = {
+            "public_id": "edited_public_id",
+            "version": "edited_version",
+            "url": "https://res.cloudinary.com/dummy/image/upload/vedited_version/edited_public_id"
+        }
+        expected_edited_url = "https://res.cloudinary.com/dummy/image/upload/vedited_version/edited_public_id"
+        expected_qr_url = "https://res.cloudinary.com/dummy/image/upload/qrcode/edited_qr"
+
+        mock_picture_upload = MagicMock(return_value=expected_edited_data)
+        mock_build_url = MagicMock(return_value=expected_edited_url)
+        mock_qr_upload = MagicMock(return_value=expected_qr_url)
+
+        mock_cloudinary_upload.side_effect = mock_picture_upload
+        mock_generate_qr_and_upload.side_effect = mock_qr_upload
+        mock_cloudinary_image.return_value.build_url = mock_build_url
+
+        edited_picture = await pictures.edit_picture(picture_id, picture_edit, db=session)
+
+    assert edited_picture == {
+        "picture_edited_url": expected_edited_url,
+        "qr_code_picture_edited": expected_qr_url
+    }

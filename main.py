@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi_limiter import FastAPILimiter
 from sqlalchemy.orm import Session
-from starlette.responses import HTMLResponse
+from starlette import status
+from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes import users, auth, messages, tags, search, comments, pictures, descriptions, admin, reactions, rating
@@ -105,6 +106,7 @@ async def users(request: Request,
     context = {'request': request, 'user': user, 'all_users': all_users}
     return templates.TemplateResponse('users.html', context)
 
+
 @app.get("/users/{user_id}")
 async def show_user(request: Request,
                     user_id: int,
@@ -157,6 +159,14 @@ async def login_form(request: Request, db: Session = Depends(get_db)):
         errors.append('Invalid email or password.')
 
     return templates.TemplateResponse('login.html', {'request': request, 'errors': errors})
+
+
+@app.get("/logout", response_class=HTMLResponse)
+async def logout(request: Request, response: Response):
+    response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
+    return response
 
 
 if __name__ == "__main__":
