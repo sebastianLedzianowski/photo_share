@@ -102,7 +102,6 @@ async def update_user_name_route(user_id: int,
 
 
 @router.post("/ban/{user_id}")
-# @require_admin
 async def ban_user_route(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
     Ban a specific user identified by their user ID.
