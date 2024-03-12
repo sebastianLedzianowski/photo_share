@@ -257,10 +257,10 @@ def picture_s():
     return PictureTest(
                     id=1,
                     user_id=1,
-                    rating=4,
+                    rating=0,
                     tags=['picture1_tag', 'picture1_tag2'],
                     picture_name="picture1_name",
-                    created_at=datetime(now)
+                    created_at=datetime.now()
                     )
 
 def fake_db_for_search_test():
