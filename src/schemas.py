@@ -174,7 +174,16 @@ class TagModel(BaseModel):
     """
     Schema for tag input during tag creation.
     """
+    id: int
     name: str
+
+class TagsResponseModel(BaseModel):
+    """
+    Response schema for the add_tags endpoint.
+    """
+    new_tags: List[TagModel]
+    existing_tags: List[TagModel]
+    
 
 
 class ChangePasswordModel(BaseModel):
