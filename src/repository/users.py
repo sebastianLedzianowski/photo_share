@@ -222,7 +222,8 @@ async def get_user_by_username(username: str, db: Session):
         UserDb: A Pydantic model representing the retrieved user's data.
 
     Raises:
-        HTTPException: A 400 error if the user with the specified username does not exist.
++        HTTPException: A 404 error if the user with the specified username does not exist.
+-        HTTPException: A 400 error if the user with the specified username does not exist.
     """
     user = db.query(User).filter(User.username == username).first()
     if not user:

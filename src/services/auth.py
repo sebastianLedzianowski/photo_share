@@ -146,26 +146,51 @@ class Auth:
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
 
-    async def get_current_user(self, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Dict:
+    async def get_current_user(
+        self, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    ) -> Dict:
+        """
+        Validate user credentials and return the user.
+
+        This function uses the JWT token to authenticate the user
+        and retrieve their data from the database if it's not
+        already cached in Redis.
+
+        The function also checks if the user is banned and raises
+        an HTTPException if they are.
+
+        Args:
+            token (str, optional): The JWT token. Defaults to Depends(oauth2_scheme).
+            db (Session, optional): The database session. Defaults to Depends(get_db).
+
+        Raises:
+            HTTPException: If the token is invalid or the user is banned.
+
+        Returns:
+            Dict: The
+ user data.
+        """
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
-            if payload['scope'] == 'access_token':
-                email = payload["sub"]
-                if email is None:
-                    raise credentials_exception
-            else:
+            if payload["scope"] != "access_token":
                 raise credentials_exception
+            email = payload["sub"]
+            if email is None:
+                raise credentials_exception
+
         except JWTError as e:
             raise credentials_exception
-        
+
+
         user = self.r.get(f"user:{email}")
+
         if user is None:
+
             user = await repository_users.get_user_by_email(email, db)
             if user is None:
                 raise credentials_exception
@@ -173,11 +198,11 @@ class Auth:
             self.r.expire(f"user:{email}", 900)
         else:
             user = pickle.loads(user)
-
         if user.ban_status:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You have been banned")
 
         return user
+
 
     async def get_current_user_optional(self, request: Request, db: Session = Depends(get_db)):
         refresh_token = request.cookies.get("refresh_token", None)
@@ -258,16 +283,20 @@ class Auth:
 
     async def get_email_from_token(self, token: str) -> str:
         """
-        Get the email from an email token.
+        Verify and decode an email token and extract the email.
+
+        This method verifies that the provided token is a valid
+        email token issued by this application, and if so, extracts
+        the email address from the token payload and returns it.
 
         Args:
-            token (str): The email token.
+            token (str): The email token to verify and decode.
 
         Returns:
-            str: The decoded email from the token.
+            str: The decoded email address from the token.
 
         Raises:
-            HTTPException: If decoding fails or token is invalid.
+            HTTPException: If the token is invalid or could not be verified.
         """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
@@ -275,8 +304,9 @@ class Auth:
             return email
         except JWTError as e:
             print(e)
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                detail="Invalid token for email.")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid token for email.")
         
 
 auth_service = Auth()
