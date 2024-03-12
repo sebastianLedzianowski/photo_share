@@ -37,10 +37,10 @@ class UserResponse(BaseModel):
 
 
 class UserSearch(BaseModel):
+    keywords: Optional[List[str]] = None
     id: Optional[List[int]] = None
     username: Optional[List[str]] = None
     email: Optional[List[str]] = None
-    keywords: Optional[List[str]] = None
 
 
 class UserUpdateName(BaseModel):
@@ -112,11 +112,10 @@ class PictureResponse(PictureBase):
 
 class PictureSearch(BaseModel):
     keywords: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
     id: Optional[List[int]] = None
+    user_id: Optional[List[int]] = None
     picture_name: Optional[List[str]] = None
-    rating: Optional[List[int]] | None
-    created_at: Optional[datetime] = None
+    tags: Optional[List[str]] = None
 
 
 class RatingValue(IntEnum):
