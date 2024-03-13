@@ -1,12 +1,16 @@
-from fastapi import Request, HTTPException, APIRouter
+from datetime import datetime
+
+from fastapi import Request, HTTPException, APIRouter, Form
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.templating import Jinja2Templates
 from src.database.db import get_db
-from src.database.models import User, Picture
+from src.database.models import User, Picture, Comment
 from src.services.auth import auth_service
+import src.repository.pictures as picture_repository
+import src.repository.comments as comment_repository
 
 templates = Jinja2Templates(directory='templates')
 router = APIRouter()
@@ -101,6 +105,51 @@ async def delete_user(user_id: int,
         return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
 
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/picture/{picture_id}", response_class=HTMLResponse)
+async def get_picture(request: Request,
+                      picture_id: int,
+                      db: Session = Depends(get_db),
+                      current_user: User = Depends(auth_service.get_current_user_optional)
+                      ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = await picture_repository.get_one_picture(picture_id=picture_id, db=db)
+    username_uploader = db.query(User.username).join(Picture, Picture.user_id == User.id).filter(Picture.id == picture_id).first()[0]
+    comments = db.query(Comment.content, User.username).join(User).filter(Comment.picture_id == picture_id).all()
+
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+
+    context = {'request': request, 'picture': picture, 'user': current_user, 'comments': comments, 'username_uploader': username_uploader}
+    return templates.TemplateResponse('picture.html', context)
+
+
+@router.post("/picture/comments/add")
+async def add_comment(picture_id: int = Form(...),
+                      content: str = Form(...),
+                      db: Session = Depends(get_db),
+                      current_user: User = Depends(auth_service.get_current_user_optional)
+                      ):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found.")
+
+    comment = Comment(user_id=current_user.id,
+                      content=content,
+                      picture=picture,
+                      created_at=datetime.now())
+
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/login", response_class=HTMLResponse)
