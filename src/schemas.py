@@ -36,11 +36,13 @@ class UserResponse(BaseModel):
     detail: str = "User successfully created"
 
 
-class UserSearch(BaseModel):
-    keywords: Optional[List[str]] = None
-    id: Optional[List[int]] = None
-    username: Optional[List[str]] = None
-    email: Optional[List[str]] = None
+class UserSearch(UserModel):
+    id: Optional[List[int]] | None
+    username: Optional[List[str]] | None
+    email: Optional[List[str]] | None
+
+    class Config:
+        from_attributes = True
 
 
 class UserUpdateName(BaseModel):
@@ -107,16 +109,18 @@ class PictureResponse(PictureBase):
     qr_code_picture: Optional[str] | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class PictureSearch(BaseModel):
-    keywords: Optional[List[str]] = None
-    id: Optional[List[int]] = None
-    user_id: Optional[List[int]] = None
-    picture_name: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
+class PictureSearch(PictureBase):
+    keywords: Optional[List[str]] | None
+    id: Optional[List[int]] | None
+    user_id: Optional[List[int]] | None
+    tags: Optional[List[str]] | None
+    description: Optional[str] | None
 
+    class Config:
+        from_attributes = True
 
 class RatingValue(IntEnum):
     ONE = 1
