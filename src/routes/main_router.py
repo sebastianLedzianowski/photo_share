@@ -197,3 +197,42 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")
     return response
+
+
+@router.get('/register', response_class=HTMLResponse)
+async def register(request: Request):\
+    return templates.TemplateResponse('register.html', {"request": request})
+
+
+@router.post('/register', response_class=HTMLResponse)
+async def register_user(request: Request,
+                        username: str = Form(...),
+                        email: str = Form(...),
+                        password: str = Form(...),
+                        password2: str = Form(),
+                        db: Session = Depends(get_db)
+                        ):
+
+    validation1 = db.query(User).filter(User.username == username).first()
+
+    validation2 = db.query(User).filter(User.email == email).first()
+
+    if password != password2 or validation1 is not None or validation2 is not None:
+        msg = 'Invalid registration request'
+        context = {'request': request, 'msg': msg}
+
+        return templates.TemplateResponse('register.html', context)
+
+    user_model = User()
+    user_model.username = username
+    user_model.email = email
+    user_model.password = auth_service.get_password_hash(password)
+    user_model.confirmed = True
+    user_model.crated_at = datetime.now()
+
+    db.add(user_model)
+    db.commit()
+
+    msg = 'User successfully created'
+    context = {'request': request, 'msg': msg}
+    return templates.TemplateResponse('login.html', context)
