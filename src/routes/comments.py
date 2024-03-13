@@ -2,9 +2,8 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
-
 from sqlalchemy.orm import Session
-
+from src.services.auth_roles import is_admin_or_moderator
 from src.database.db import get_db
 from src.database.models import User
 from src.schemas import CommentModel, CommentResponse
@@ -103,11 +102,11 @@ async def update_comment(
     return comment
 
 
-@router.delete("/{comment_id}")
-async def remove_comment(
+@router.delete("/{contact_id}")
+async def remove_contact(
         comment_id: int,
         db: Session = Depends(get_db),
-        current_user: User = Depends(auth_service.get_current_user)
+        current_user: User = Depends(is_admin_or_moderator)
 ):
     """
     The remove_comment function is used to delete a comment from the database. The function returns a JSONResponse
@@ -123,3 +122,5 @@ async def remove_comment(
     if comment is None:
         return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"message": "You can't delete the comment."})
     return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "The comment deleted successfully"})
+
+    

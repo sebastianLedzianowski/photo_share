@@ -1,11 +1,9 @@
 from typing import List
-
-from fastapi import APIRouter, Depends, UploadFile, File, status, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.orm import Session
 import cloudinary
 import cloudinary.uploader
-
 from src.database.db import get_db
 from src.database.models import User
 from src.repository import users as repository_users
@@ -103,7 +101,6 @@ async def update_user_name_route(user_id: int,
     return updated_user
 
 
-
 @router.post("/ban/{user_id}")
 async def ban_user_route(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
@@ -129,7 +126,8 @@ async def ban_user_route(user_id: int, db: Session = Depends(get_db), current_us
         return {"message": "User has been banned successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 @router.delete("/delete_account")
 async def delete_own_account(current_user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
     """
@@ -152,6 +150,7 @@ async def delete_own_account(current_user: User = Depends(auth_service.get_curre
         return {"message": "Your account has been successfully deleted."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/name/{username}", response_model=UserDb)
 async def read_user_by_username(username: str, db: Session = Depends(get_db)) -> UserDb:

@@ -37,10 +37,10 @@ class UserResponse(BaseModel):
 
 
 class UserSearch(BaseModel):
+    keywords: Optional[List[str]] = None
     id: Optional[List[int]] = None
     username: Optional[List[str]] = None
     email: Optional[List[str]] = None
-    keywords: Optional[List[str]] = None
 
 
 class UserUpdateName(BaseModel):
@@ -112,11 +112,10 @@ class PictureResponse(PictureBase):
 
 class PictureSearch(BaseModel):
     keywords: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
     id: Optional[List[int]] = None
+    user_id: Optional[List[int]] = None
     picture_name: Optional[List[str]] = None
-    rating: Optional[List[int]] | None
-    created_at: Optional[datetime] = None
+    tags: Optional[List[str]] = None
 
 
 class RatingValue(IntEnum):
@@ -125,6 +124,13 @@ class RatingValue(IntEnum):
     THREE = 3
     FOUR = 4
     FIVE = 5
+
+class Rating(BaseModel):
+    picture_id: int
+    rating: RatingValue
+
+class RatingPicture(BaseModel):
+    picture_id: int
 
 class MessageBase(BaseModel):
     sender_id: int
@@ -171,7 +177,16 @@ class TagModel(BaseModel):
     """
     Schema for tag input during tag creation.
     """
+    id: int
     name: str
+
+class TagsResponseModel(BaseModel):
+    """
+    Response schema for the add_tags endpoint.
+    """
+    new_tags: List[TagModel]
+    existing_tags: List[TagModel]
+    
 
 
 class ChangePasswordModel(BaseModel):

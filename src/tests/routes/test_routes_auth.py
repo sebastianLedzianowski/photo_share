@@ -1,6 +1,5 @@
 import json
 from unittest.mock import MagicMock, AsyncMock
-from fastapi.responses import HTMLResponse
 from src.database.models import User
 from src.services.auth import auth_service
 from src.tests.conftest import login_user_token_created, create_user_db, \
