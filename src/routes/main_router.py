@@ -119,7 +119,7 @@ async def get_picture(request: Request,
 
     picture = await picture_repository.get_one_picture(picture_id=picture_id, db=db)
     username_uploader = db.query(User.username).join(Picture, Picture.user_id == User.id).filter(Picture.id == picture_id).first()[0]
-    comments = db.query(Comment.content, User.username).join(User).filter(Comment.picture_id == picture_id).all()
+    comments = db.query(Comment.content, User.username).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
 
     if not picture:
         raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
