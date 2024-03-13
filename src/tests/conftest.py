@@ -133,6 +133,14 @@ def login_user_confirmed_true_and_hash_password(user, session):
     session.commit()
 
 
+def login_user_confirmed_false_and_hash_password(user, session):
+    create_user_db(user, session)
+    user_update: User = session.query(User).filter(User.email == user.email).first()
+    user_update.password = auth_service.get_password_hash(user_update.password)
+    user_update.confirmed = False
+    session.commit()
+
+
 def login_user_token_created(user, session):
     login_user_confirmed_true_and_hash_password(user, session)
     new_user: User = session.query(User).filter(User.email == user.email).first()
@@ -145,6 +153,18 @@ def login_user_token_created(user, session):
 
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
 
+
+def login_user_token_created_unconfirmed(user, session):
+    login_user_confirmed_false_and_hash_password(user, session)
+    new_user: User = session.query(User).filter(User.email == user.email).first()
+
+    access_token = auth_service.create_access_token(data={"sub": new_user.email})
+    refresh_token_ = auth_service.create_refresh_token(data={"sub": new_user.email})
+
+    new_user.refresh_token = refresh_token_
+    session.commit()
+
+    return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
 
 @pytest.fixture
 def fake_db_for_message_test():
