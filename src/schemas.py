@@ -93,7 +93,7 @@ class PictureDB(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PictureDescription(BaseModel):
@@ -122,6 +122,7 @@ class PictureSearch(PictureBase):
     class Config:
         from_attributes = True
 
+
 class RatingValue(IntEnum):
     ONE = 1
     TWO = 2
@@ -129,12 +130,15 @@ class RatingValue(IntEnum):
     FOUR = 4
     FIVE = 5
 
+
 class Rating(BaseModel):
     picture_id: int
     rating: RatingValue
 
+
 class RatingPicture(BaseModel):
     picture_id: int
+
 
 class MessageBase(BaseModel):
     sender_id: int
@@ -184,13 +188,13 @@ class TagModel(BaseModel):
     id: int
     name: str
 
+
 class TagsResponseModel(BaseModel):
     """
     Response schema for the add_tags endpoint.
     """
     new_tags: List[TagModel]
     existing_tags: List[TagModel]
-    
 
 
 class ChangePasswordModel(BaseModel):
