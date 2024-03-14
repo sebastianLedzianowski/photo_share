@@ -8,10 +8,10 @@ from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.templating import Jinja2Templates
 
 from src.database.db import get_db
-from src.database.models import User, Picture, Comment
+from src.database.models import User, Picture, Comment, Rating
 from src.services.auth import auth_service
 import src.repository.pictures as picture_repository
-import src.repository.comments as comment_repository
+import src.repository.rating as rating_repository
 from src.conf.cloudinary import configure_cloudinary, generate_random_string
 from src.services.qr import generate_qr_and_upload_to_cloudinary
 import cloudinary
@@ -26,6 +26,7 @@ async def index(request: Request,
                 db: Session = Depends(get_db),
                 current_user: User = Depends(auth_service.get_current_user_optional)
                 ):
+
     if current_user is None:
         return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
 
@@ -41,6 +42,7 @@ async def users(request: Request,
                 db: Session = Depends(get_db),
                 current_user: User = Depends(auth_service.get_current_user_optional),
                 ):
+
     if current_user is None or not current_user.admin:
         return RedirectResponse(url='/login', status_code=status.HTTP_401_UNAUTHORIZED)
 
@@ -60,6 +62,7 @@ async def show_user(request: Request,
                     db: Session = Depends(get_db),
                     current_user: User = Depends(auth_service.get_current_user_optional)
                     ):
+
     user = db.query(User).filter(User.id == user_id).first()
     context = {"request": request, "user": user, 'current_user': current_user}
 
@@ -91,6 +94,7 @@ async def delete_user(user_id: int,
                       db: Session = Depends(get_db),
                       current_user: User = Depends(auth_service.get_current_user_optional)
                       ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -146,8 +150,8 @@ async def upload_picture(request: Request,
                          qr_code: UploadFile = File(None),
                          current_user: User = Depends(auth_service.get_current_user_optional),
                          db: Session = Depends(get_db)
-
                          ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -181,12 +185,29 @@ async def get_picture(request: Request,
 
     picture = await picture_repository.get_one_picture(picture_id=picture_id, db=db)
     username_uploader = db.query(User.username).join(Picture, Picture.user_id == User.id).filter(Picture.id == picture_id).first()[0]
-    comments = db.query(Comment.content, User.username).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
+    comments = db.query(Comment.content,
+                        User.username,
+                        Comment.id,
+                        Comment.user_id,
+    ).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
+
+    average_rating = await rating_repository.get_average_of_rating(picture_id=picture_id, db=db)
+
+    if average_rating.get('message'):
+        average_rating = 0
+    else:
+        average_rating = average_rating.get('average_rating')
 
     if not picture:
         raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
 
-    context = {'request': request, 'picture': picture, 'user': current_user, 'comments': comments, 'username_uploader': username_uploader}
+    context = {'request': request,
+               'picture': picture,
+               'user': current_user,
+               'comments': comments,
+               'username_uploader': username_uploader,
+               "average_rating": average_rating,
+               }
     return templates.TemplateResponse('picture.html', context)
 
 
@@ -196,6 +217,7 @@ async def add_comment(picture_id: int = Form(...),
                       db: Session = Depends(get_db),
                       current_user: User = Depends(auth_service.get_current_user_optional)
                       ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -214,10 +236,70 @@ async def add_comment(picture_id: int = Form(...),
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.get("/comment/edit/{comment_id}", response_class=HTMLResponse)
+async def edit_comment_form(request: Request,
+                            comment_id: int,
+                            db: Session = Depends(get_db),
+                            current_user: User = Depends(auth_service.get_current_user_optional)
+                            ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You must be logged in to edit comments.")
+
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+
+    if not comment or comment.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own comments.")
+
+    return templates.TemplateResponse("comment_edit.html", {"request": request, "comment": comment})
+
+
+@router.post("/comment/edit/{comment_id}")
+async def submit_edit_comment(comment_id: int,
+                              content: str = Form(...),
+                              db: Session = Depends(get_db),
+                              current_user: User = Depends(auth_service.get_current_user_optional)
+                              ):
+
+    comment = db.query(Comment).filter(Comment.id == comment_id, Comment.user_id == current_user.id).first()
+
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
+
+    comment.content = content
+    comment.updated_at = datetime.now()
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{comment.picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/comment/delete/{comment_id}")
+async def delete_comment(comment_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: User = Depends(auth_service.get_current_user_optional)):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Musisz być zalogowany.")
+
+    if not current_user.admin and not current_user.moderator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do usunięcia komentarza.")
+
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Komentarz nie został znaleziony.")
+
+    db.delete(comment)
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{comment.picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.post("/picture/delete/{picture_id}")
 async def delete_picture(picture_id: int,
                          db: Session = Depends(get_db),
-                         current_user: User = Depends(auth_service.get_current_user_optional)):
+                         current_user: User = Depends(auth_service.get_current_user_optional)
+                         ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -236,6 +318,80 @@ async def delete_picture(picture_id: int,
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.get("/picture/edit/{picture_id}", response_class=HTMLResponse)
+async def edit_picture_form(request: Request,
+                            picture_id: int,
+                            db: Session = Depends(get_db),
+                            current_user: User = Depends(auth_service.get_current_user_optional)
+                            ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
+
+    return templates.TemplateResponse("picture_edit.html", {"request": request, "picture": picture})
+
+
+@router.post("/picture/edit/{picture_id}")
+async def edit_picture(picture_id: int,
+                       description: str = Form(...),
+                       db: Session = Depends(get_db),
+                       current_user: User = Depends(auth_service.get_current_user_optional)
+                       ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
+
+    picture.description = description
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+from fastapi import HTTPException, status
+
+
+@router.post("/picture/rate/{picture_id}")
+async def rate_picture(picture_id: int,
+                       rating: int = Form(...),
+                       db: Session = Depends(get_db),
+                       current_user: User = Depends(auth_service.get_current_user_optional)
+                       ):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    result = await rating_repository.add_rating_to_picture(picture_id, rating, current_user, db)
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+from sqlalchemy.orm import joinedload
+
+@router.get("/picture/{picture_id}/ratings", response_class=HTMLResponse)
+async def view_picture_ratings(request: Request,
+                               picture_id: int,
+                               db: Session = Depends(get_db),
+                               current_user: User = Depends(auth_service.get_current_user_optional)
+                               ):
+
+    if not (current_user.admin or current_user.moderator):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions.")
+
+    ratings = (db.query(Rating, User.username)
+               .join(User, Rating.user_id == User.id)
+               .filter(Rating.picture_id == picture_id)
+               .all())
+
+    return templates.TemplateResponse("ratings.html", {"request": request, "ratings": ratings,
+                                                       "picture_id": picture_id, "user": current_user})
+
 @router.get("/login", response_class=HTMLResponse)
 async def authentication_page(request: Request):
     return templates.TemplateResponse('login.html', {"request": request})
@@ -245,38 +401,41 @@ async def authentication_page(request: Request):
 async def login_form(request: Request,
                      db: Session = Depends(get_db)
                      ):
+
     form = await request.form()
     email = form.get('email')
     password = form.get('password')
-    errors = []
 
-    user = db.query(User).filter(User.email == email).first() if not errors else None
+    user = db.query(User).filter(User.email == email).first()
 
-    if user.ban_status:
-        msg = 'User is Baned'
-        context = {'request': request, 'msg': msg}
-        return templates.TemplateResponse('login.html', context)
+    if user:
+        if user.ban_status:
+            msg = 'User is banned.'
+            context = {'request': request, 'msg': msg}
+            return templates.TemplateResponse('login.html', context)
 
-    if user and auth_service.verify_password(password, user.password):
-        data = {"sub": email}
-        jwt_token = auth_service.create_access_token(data=data)
-        jwt_refresh_token = auth_service.create_refresh_token(data=data)
-        pictures = db.query(Picture).all()
+        if auth_service.verify_password(password, user.password):
+            data = {"sub": email}
+            jwt_token = auth_service.create_access_token(data=data)
+            jwt_refresh_token = auth_service.create_refresh_token(data=data)
+            pictures = db.query(Picture).all()
 
-        context = {'request': request, 'user': user, 'pictures': pictures}
-        response = templates.TemplateResponse('home.html', context)
-        response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
-        response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
-        return response
-    else:
-        msg = 'Incorrect Username or Password'
+            context = {'request': request, 'user': user, 'pictures': pictures}
+            response = templates.TemplateResponse('home.html', context)
+            response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
+            response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
+            return response
 
+    msg = 'Incorrect Username or Password'
     context = {'request': request, 'msg': msg}
     return templates.TemplateResponse('login.html', context)
 
 
 @router.get("/logout", response_class=HTMLResponse)
-async def logout(request: Request, response: Response):
+async def logout(request: Request,
+                 response: Response
+                 ):
+
     response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")
