@@ -8,11 +8,38 @@ from src.database.db import get_db
 from src.schemas import PictureResponse
 
 
-async def search_pictures(keyword: Optional[str] = "",
+async def search_pictures(keyword: Optional[str] = None,
                           sort_by: Optional[str] = "created_at",
                           sort_order: Optional[str] = "desc",
                           db: Session = Depends(get_db)
                           ) -> List[PictureResponse]:
+    """
+    Searches for pictures based on keywords, sort criteria, and order. It allows for filtering pictures
+    by tags or description that match the keyword, and then sorts the results according to the specified
+    sort criteria and order.
+
+    Parameters:
+    - `keyword` (Optional[str]): The keyword to search for within picture tags and descriptions.
+                                 If None, the function will return all pictures.
+    - `sort_by` (Optional[str]): The field by which the results should be sorted. Defaults to "created_at".
+                                 Allowed values are "rating" and "created_at".
+    - `sort_order` (Optional[str]): The order in which the results should be sorted. Defaults to "desc" (descending).
+                                    Allowed values are "asc" (ascending) and "desc" (descending).
+    - `db` (Session): The database session.
+
+    Returns:
+    - List[PictureResponse]: A list of `PictureResponse` objects, each representing a picture that matches the search criteria.
+                             Each `PictureResponse` includes picture ID, description, picture URL, average rating, creation date,
+                             user ID, associated tags IDs, and a QR code picture URL.
+
+    Raises:
+    - HTTPException: If no pictures are found that match the search criteria, a 404 error is raised with the detail "Picture not found".
+
+    The function first filters tags by the keyword and then finds pictures associated with these tags. It also searches
+    within picture descriptions for the keyword. The resulting list of pictures is then sorted based on the specified
+    `sort_by` and `sort_order` parameters. If no keyword is provided, all pictures are considered in the search. The
+    function ensures that the sorting parameters are valid and defaults them if necessary.
+    """
 
     if sort_by not in ["rating", "created_at"]:
         sort_by = "created_at"
