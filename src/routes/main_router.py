@@ -26,6 +26,7 @@ async def index(request: Request,
                 db: Session = Depends(get_db),
                 current_user: User = Depends(auth_service.get_current_user_optional)
                 ):
+
     if current_user is None:
         return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
 
@@ -41,6 +42,7 @@ async def users(request: Request,
                 db: Session = Depends(get_db),
                 current_user: User = Depends(auth_service.get_current_user_optional),
                 ):
+
     if current_user is None or not current_user.admin:
         return RedirectResponse(url='/login', status_code=status.HTTP_401_UNAUTHORIZED)
 
@@ -60,6 +62,7 @@ async def show_user(request: Request,
                     db: Session = Depends(get_db),
                     current_user: User = Depends(auth_service.get_current_user_optional)
                     ):
+
     user = db.query(User).filter(User.id == user_id).first()
     context = {"request": request, "user": user, 'current_user': current_user}
 
@@ -91,6 +94,7 @@ async def delete_user(user_id: int,
                       db: Session = Depends(get_db),
                       current_user: User = Depends(auth_service.get_current_user_optional)
                       ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -146,8 +150,8 @@ async def upload_picture(request: Request,
                          qr_code: UploadFile = File(None),
                          current_user: User = Depends(auth_service.get_current_user_optional),
                          db: Session = Depends(get_db)
-
                          ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -196,6 +200,7 @@ async def add_comment(picture_id: int = Form(...),
                       db: Session = Depends(get_db),
                       current_user: User = Depends(auth_service.get_current_user_optional)
                       ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -217,7 +222,9 @@ async def add_comment(picture_id: int = Form(...),
 @router.post("/picture/delete/{picture_id}")
 async def delete_picture(picture_id: int,
                          db: Session = Depends(get_db),
-                         current_user: User = Depends(auth_service.get_current_user_optional)):
+                         current_user: User = Depends(auth_service.get_current_user_optional)
+                         ):
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
@@ -234,6 +241,43 @@ async def delete_picture(picture_id: int,
     db.commit()
 
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/picture/edit/{picture_id}", response_class=HTMLResponse)
+async def edit_picture_form(request: Request,
+                            picture_id: int,
+                            db: Session = Depends(get_db),
+                            current_user: User = Depends(auth_service.get_current_user_optional)
+                            ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
+
+    return templates.TemplateResponse("picture_edit.html", {"request": request, "picture": picture})
+
+
+@router.post("/picture/edit/{picture_id}")
+async def edit_picture(picture_id: int,
+                       description: str = Form(...),
+                       db: Session = Depends(get_db),
+                       current_user: User = Depends(auth_service.get_current_user_optional)
+                       ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
+
+    picture.description = description
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/login", response_class=HTMLResponse)
