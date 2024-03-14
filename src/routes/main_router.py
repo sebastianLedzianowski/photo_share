@@ -385,8 +385,6 @@ async def rate_picture(picture_id: int,
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
-from sqlalchemy.orm import joinedload
-
 @router.get("/picture/{picture_id}/ratings", response_class=HTMLResponse)
 async def view_picture_ratings(request: Request,
                                picture_id: int,
@@ -404,6 +402,30 @@ async def view_picture_ratings(request: Request,
 
     return templates.TemplateResponse("ratings.html", {"request": request, "ratings": ratings,
                                                        "picture_id": picture_id, "user": current_user})
+
+
+@router.post("/rating/{rating_id}/delete")
+async def delete_rating(rating_id: int,
+                        db: Session = Depends(get_db),
+                        current_user: User = Depends(auth_service.get_current_user_optional)):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    rating = db.query(Rating).filter(Rating.id == rating_id).first()
+
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found.")
+
+    if not (current_user.admin or current_user.moderator or current_user.id == rating.user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to delete this rating.")
+
+    picture_id = rating.picture_id
+    db.delete(rating)
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def authentication_page(request: Request):
