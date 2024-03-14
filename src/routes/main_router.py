@@ -64,7 +64,20 @@ async def show_user(request: Request,
                     ):
 
     user = db.query(User).filter(User.id == user_id).first()
-    context = {"request": request, "user": user, 'current_user': current_user}
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    uploaded_images_count = db.query(Picture).filter(Picture.user_id == user_id).count()
+
+    added_comments_count = db.query(Comment).filter(Comment.user_id == user_id).count()
+
+    context = {
+        "request": request,
+        "user": user,
+        'current_user': current_user,
+        "uploaded_images_count": uploaded_images_count,
+        "added_comments_count": added_comments_count
+    }
 
     return templates.TemplateResponse("user_details.html", context)
 
