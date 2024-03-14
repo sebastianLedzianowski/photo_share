@@ -8,10 +8,10 @@ from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.templating import Jinja2Templates
 
 from src.database.db import get_db
-from src.database.models import User, Picture, Comment
+from src.database.models import User, Picture, Comment, Rating
 from src.services.auth import auth_service
 import src.repository.pictures as picture_repository
-import src.repository.comments as comment_repository
+import src.repository.rating as rating_repository
 from src.conf.cloudinary import configure_cloudinary, generate_random_string
 from src.services.qr import generate_qr_and_upload_to_cloudinary
 import cloudinary
@@ -64,7 +64,20 @@ async def show_user(request: Request,
                     ):
 
     user = db.query(User).filter(User.id == user_id).first()
-    context = {"request": request, "user": user, 'current_user': current_user}
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    uploaded_images_count = db.query(Picture).filter(Picture.user_id == user_id).count()
+
+    added_comments_count = db.query(Comment).filter(Comment.user_id == user_id).count()
+
+    context = {
+        "request": request,
+        "user": user,
+        'current_user': current_user,
+        "uploaded_images_count": uploaded_images_count,
+        "added_comments_count": added_comments_count
+    }
 
     return templates.TemplateResponse("user_details.html", context)
 
@@ -191,10 +204,23 @@ async def get_picture(request: Request,
                         Comment.user_id,
     ).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
 
+    average_rating = await rating_repository.get_average_of_rating(picture_id=picture_id, db=db)
+
+    if average_rating.get('message'):
+        average_rating = 0
+    else:
+        average_rating = average_rating.get('average_rating')
+
     if not picture:
         raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
 
-    context = {'request': request, 'picture': picture, 'user': current_user, 'comments': comments, 'username_uploader': username_uploader}
+    context = {'request': request,
+               'picture': picture,
+               'user': current_user,
+               'comments': comments,
+               'username_uploader': username_uploader,
+               "average_rating": average_rating,
+               }
     return templates.TemplateResponse('picture.html', context)
 
 
@@ -342,6 +368,65 @@ async def edit_picture(picture_id: int,
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+from fastapi import HTTPException, status
+
+
+@router.post("/picture/rate/{picture_id}")
+async def rate_picture(picture_id: int,
+                       rating: int = Form(...),
+                       db: Session = Depends(get_db),
+                       current_user: User = Depends(auth_service.get_current_user_optional)
+                       ):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    result = await rating_repository.add_rating_to_picture(picture_id, rating, current_user, db)
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/picture/{picture_id}/ratings", response_class=HTMLResponse)
+async def view_picture_ratings(request: Request,
+                               picture_id: int,
+                               db: Session = Depends(get_db),
+                               current_user: User = Depends(auth_service.get_current_user_optional)
+                               ):
+
+    if not (current_user.admin or current_user.moderator):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions.")
+
+    ratings = (db.query(Rating, User.username)
+               .join(User, Rating.user_id == User.id)
+               .filter(Rating.picture_id == picture_id)
+               .all())
+
+    return templates.TemplateResponse("ratings.html", {"request": request, "ratings": ratings,
+                                                       "picture_id": picture_id, "user": current_user})
+
+
+@router.post("/rating/{rating_id}/delete")
+async def delete_rating(rating_id: int,
+                        db: Session = Depends(get_db),
+                        current_user: User = Depends(auth_service.get_current_user_optional)):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    rating = db.query(Rating).filter(Rating.id == rating_id).first()
+
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found.")
+
+    if not (current_user.admin or current_user.moderator or current_user.id == rating.user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to delete this rating.")
+
+    picture_id = rating.picture_id
+    db.delete(rating)
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def authentication_page(request: Request):
     return templates.TemplateResponse('login.html', {"request": request})
@@ -349,7 +434,9 @@ async def authentication_page(request: Request):
 
 @router.post("/login", response_class=HTMLResponse)
 async def login_form(request: Request,
-                     db: Session = Depends(get_db)):
+                     db: Session = Depends(get_db)
+                     ):
+
     form = await request.form()
     email = form.get('email')
     password = form.get('password')
@@ -380,7 +467,10 @@ async def login_form(request: Request,
 
 
 @router.get("/logout", response_class=HTMLResponse)
-async def logout(request: Request, response: Response):
+async def logout(request: Request,
+                 response: Response
+                 ):
+
     response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")

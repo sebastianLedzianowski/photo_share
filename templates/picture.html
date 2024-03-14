@@ -4,9 +4,30 @@
     <div class="row">
         <div class="col-12 col-md-5">
             <img src="{{ picture.picture_url }}" alt="Picture" class="img-fluid w-100 h-100">
+
             <!-- Download Picture Button -->
             <a href="{{ picture.picture_url }}" download="{{ picture.id }}.jpg" class="btn btn-success mt-2">Download
                 Picture</a>
+
+            <!-- Rating -->
+            {% if user.id != picture.user_id %}
+                <div class="rating mt-3">
+                    <h3>Your Rating</h3>
+                    <form action="/picture/rate/{{ picture.id }}" method="POST">
+                        <div class="form-group">
+                            <label for="rating">Rate this picture (1-5):</label>
+                            <select class="form-control" id="rating" name="rating">
+                                <option value="1" {% if user_rating == 1 %}selected{% endif %}>1</option>
+                                <option value="2" {% if user_rating == 2 %}selected{% endif %}>2</option>
+                                <option value="3" {% if user_rating == 3 %}selected{% endif %}>3</option>
+                                <option value="4" {% if user_rating == 4 %}selected{% endif %}>4</option>
+                                <option value="5" {% if user_rating == 5 %}selected{% endif %}>5</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Rating</button>
+                    </form>
+                </div>
+            {% endif %}
         </div>
 
         <div class="col-12 col-md-6">
@@ -15,12 +36,19 @@
                 <p>{{ username_uploader }}</p>
             </div>
 
+            <!-- Display Description -->
             {% if picture.description %}
                 <div class="description">
                     <h3>Description</h3>
                     <div>{{ picture.description }}</div>
                 </div>
             {% endif %}
+
+            <!-- Display Average Rating -->
+            <div class="average-rating mt-3">
+                <h5>Average Rating:</h5>
+                <p>{{ average_rating }}</p>
+            </div>
 
             {% if picture.qr_code_picture %}
                 <div class="qr-code mt-3" style="max-width: 150px;">
@@ -44,7 +72,8 @@
                             <form action="/comment/delete/{{ comment.id }}" method="post"
                                   style="display: inline-block;">
                                 <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Are you sure you want to delete this comment?');">Delete
+                                        onclick="return confirm('Are you sure you want to delete this comment?');">
+                                    Delete
                                 </button>
                             </form>
                         {% endif %}
@@ -69,12 +98,17 @@
                     <a href="/picture/edit/{{ picture.id }}" class="btn btn-warning">Edit Description</a>
                     <form action="/picture/delete/{{ picture.id }}" method="POST" style="display: inline-block;">
                         <button type="submit" class="btn btn-danger"
-                                onclick="return confirm('Are you sure you want to delete this picture?');">Delete Picture
+                                onclick="return confirm('Are you sure you want to delete this picture?');">Delete
+                            Picture
                         </button>
                     </form>
                 </div>
             {% endif %}
+
+            <!-- Conditional display of Rating Page -->
+            {% if user.admin or user.moderator %}
+                <a href="/picture/{{ picture.id }}/ratings" class="btn btn-info">View Ratings</a>
+            {% endif %}
         </div>
     </div>
-</div>
 </div>

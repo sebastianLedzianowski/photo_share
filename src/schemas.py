@@ -99,13 +99,29 @@ class PictureDB(BaseModel):
 class PictureDescription(BaseModel):
     description: Optional[str] | None
 
+class TagModel(BaseModel):
+    """
+    Schema for tag input during tag creation.
+    """
+    id: int
+    name: str
+
+
+class TagsResponseModel(BaseModel):
+    """
+    Response schema for the add_tags endpoint.
+    """
+    new_tags: List[TagModel]
+    existing_tags: List[TagModel]
+
+
 
 class PictureResponse(PictureBase):
     id: int
     picture_url: str | None
     average_rating: Optional[float] | None
     created_at: datetime
-    tags: Optional[List[int]]
+    tags: Optional[List[TagModel]]
     qr_code_picture: Optional[str] | None
 
     class Config:
@@ -179,22 +195,6 @@ class CommentResponse(CommentModel):
 
     class Config:
         from_attributes = True
-
-        
-class TagModel(BaseModel):
-    """
-    Schema for tag input during tag creation.
-    """
-    id: int
-    name: str
-
-
-class TagsResponseModel(BaseModel):
-    """
-    Response schema for the add_tags endpoint.
-    """
-    new_tags: List[TagModel]
-    existing_tags: List[TagModel]
 
 
 class ChangePasswordModel(BaseModel):
