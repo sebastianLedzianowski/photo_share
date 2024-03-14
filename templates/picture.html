@@ -18,13 +18,21 @@
                 </div>
             {% endif %}
 
-            <div class="comments">
+            {% if picture.qr_code_picture %}
+                <div class="qr-code mt-3" style="max-width: 150px;">
+                    <h5>QR Code:</h5>
+                    <img src="{{ picture.qr_code_picture }}" alt="QR Code" class="img-fluid">
+                </div>
+            {% endif %}
+
+            <div class="comments mt-3">
                 <h3>Comments</h3>
                 {% for comment in comments %}
                     <div style="margin-bottom: 20px;"><strong>{{ comment[1] }}</strong>: {{ comment[0] }}</div>
                 {% endfor %}
+
                 <!-- Comment Form -->
-                <form action="/picture/comments/add" method="POST">
+                <form action="/picture/comments/add" method="POST" style="display: inline-block;">
                     <input type="hidden" name="picture_id" value="{{ picture.id }}">
                     <div class="form-group">
                         <label for="commentContent">Your Comment:</label>
@@ -32,6 +40,13 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Submit Comment</button>
                 </form>
+
+                <!-- Conditional display of Delete Picture button -->
+                {% if user.id == picture.user_id or user.admin %}
+                    <form action="/picture/delete/{{ picture.id }}" method="POST" style="display: inline-block;">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this picture?');">Delete Picture</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>

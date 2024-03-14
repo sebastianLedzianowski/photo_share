@@ -1,16 +1,21 @@
 from datetime import datetime
 
-from fastapi import Request, HTTPException, APIRouter, Form
+from fastapi import Request, HTTPException, APIRouter, Form, UploadFile, File
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.templating import Jinja2Templates
+
 from src.database.db import get_db
 from src.database.models import User, Picture, Comment
 from src.services.auth import auth_service
 import src.repository.pictures as picture_repository
 import src.repository.comments as comment_repository
+from src.conf.cloudinary import configure_cloudinary, generate_random_string
+from src.services.qr import generate_qr_and_upload_to_cloudinary
+import cloudinary
+import cloudinary.uploader
 
 templates = Jinja2Templates(directory='templates')
 router = APIRouter()
@@ -107,6 +112,63 @@ async def delete_user(user_id: int,
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
+async def picture_uploader(picture_url: str,
+                           picture_json: dict,
+                           user: User, qr: str,
+                           description: str,
+                           db: Session
+                           ) -> Picture:
+
+    picture = Picture(
+        picture_url=picture_url,
+        picture_json=picture_json,
+        user_id=user.id,
+        qr_code_picture=qr,
+        description=description,
+        created_at=datetime.now()
+    )
+    db.add(picture)
+    db.commit()
+    db.refresh(picture)
+    return picture
+
+
+@router.get("/picture/upload", response_class=HTMLResponse)
+async def authentication_page(request: Request):
+    return templates.TemplateResponse('picture_upload.html', {"request": request})
+
+
+@router.post("/picture/upload", response_class=HTMLResponse)
+async def upload_picture(request: Request,
+                         picture: UploadFile = File(...),
+                         description: str = Form(...),
+                         metadata: str = Form("{}"),
+                         qr_code: UploadFile = File(None),
+                         current_user: User = Depends(auth_service.get_current_user_optional),
+                         db: Session = Depends(get_db)
+
+                         ):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    configure_cloudinary()
+    picture_name = generate_random_string()
+    picture = cloudinary.uploader.upload(picture.file, public_id=picture_name, folder='picture', overwrite=True)
+    version = picture.get('version')
+
+    picture_url = cloudinary.CloudinaryImage(picture['public_id']).build_url(version=version)
+    qr = await generate_qr_and_upload_to_cloudinary(picture_url, picture)
+
+    uploaded_picture = await picture_uploader(picture_url=picture_url,
+                                              picture_json=picture,
+                                              user=current_user,
+                                              description=description,
+                                              qr=qr,
+                                              db=db)
+
+    return RedirectResponse(url=f"/picture/{uploaded_picture.id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/picture/{picture_id}", response_class=HTMLResponse)
 async def get_picture(request: Request,
                       picture_id: int,
@@ -150,6 +212,28 @@ async def add_comment(picture_id: int = Form(...),
     db.commit()
     db.refresh(comment)
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/picture/delete/{picture_id}")
+async def delete_picture(picture_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: User = Depends(auth_service.get_current_user_optional)):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    picture = db.query(Picture).filter(Picture.id == picture_id).first()
+    if not picture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found.")
+
+    # Check if the current user is the uploader or an admin
+    if picture.user_id != current_user.id and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to perform this action.")
+
+    db.delete(picture)
+    db.commit()
+
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/login", response_class=HTMLResponse)
