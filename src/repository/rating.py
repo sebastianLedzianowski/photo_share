@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from src.database.models import Rating, User
 
+
 async def add_rating_to_picture(picture_id: int, rating: int, user: User, db: Session):
     """
     Adds or updates a rating for a picture by a specific user.
