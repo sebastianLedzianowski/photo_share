@@ -19,6 +19,7 @@ PhotoShare is a versatile REST API application designed to facilitate photo shar
 - 🐘 Alembic
 - 🔄 Redis
 - 📚 Poetry
+- 📧 MailGun
 
 ## 🔐 Registration and Authentication
 
@@ -172,6 +173,16 @@ You can now access the PhotoShare application either through your local setup at
 - Leverage QR code generation for sharing transformed images.
 - Administrators can perform CRUD operations on user photos and comments.
 
+## 🧑🏻‍🤝‍🧑🏽 Creators
+
+- github.com/sebastianLedzianowski - Project Manager
+- github.com/Camilleus - Scrum Master
+- github.com/OktawianCzakiert - Developer
+- github.com/Heesej - Developer
+- github.com/bgozlinski - Developer
+- github.com/julotec - Developer
+- github.com/KrzysztofKazimierczak - Developer
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow the Commonly Recognized Contribution Guidelines 😺
@@ -185,67 +196,65 @@ This project should be licensed under the MIT License.
 ```bash
 Name                                                        Stmts   Miss  Cover   Missing
 -----------------------------------------------------------------------------------------
-main.py                                                        32      3    91%   50-57, 60
-src\__init__.py                                                 0      0   100%
-src\conf\__init__.py                                            0      0   100%
-src\conf\cloudinary.py                                         13      0   100%
-src\database\__init__.py                                        0      0   100%
-src\database\db.py                                             11      4    64%   22-26
-src\database\models.py                                         91      1    99%   79
-src\repository\__init__.py                                      0      0   100%
-src\repository\admin.py                                        14      9    36%   8-18
-src\repository\comments.py                                     30      7    77%   93-100
-src\repository\descriptions.py                                 26      0   100%
-src\repository\messages.py                                     13      7    46%   30-36, 59-62
-src\repository\pictures.py                                     83      4    95%   211, 215-217
-src\repository\rating.py                                       28     21    25%   19-26, 41-47, 61-63, 77-82
-src\repository\reactions.py                                    60     25    58%   21-28, 42-54, 99-104
-src\repository\tags.py                                         30     25    17%   27-66
-src\repository\users.py                                        60     12    80%   66-69, 114, 141-149
-src\routes\__init__.py                                          0      0   100%
-src\routes\admin.py                                            14      4    71%   36-39
-src\routes\auth.py                                             98      2    98%   73, 201
-src\routes\comments.py                                         36      4    89%   121-124
-src\routes\descriptions.py                                     33      0   100%
-src\routes\main_router.py                                     139    101    27%   24-31, 39-49, 58-61, 69-81, 89-107, 117-128, 137-152, 157, 164-191, 196-199, 216-238
-src\routes\messages.py                                         20      6    70%   38-46, 70-71
-src\routes\pictures.py                                         82     21    74%   43, 82, 118, 151, 159, 190, 195, 232-252
-src\routes\rating.py                                           24      7    71%   29, 42-43, 54-55, 66-67
-src\routes\reactions.py                                        22      6    73%   31, 49, 65-66, 82-83
-src\routes\search.py                                           27      8    70%   34-35, 50-51, 59-63
-src\routes\tags.py                                             13      4    69%   37-40
-src\routes\users.py                                            59     14    76%   124-128, 145-152, 171, 191-192
-src\schemas.py                                                137      0   100%
-src\services\__init__.py                                        0      0   100%
-src\services\auth.py                                          114     26    77%   100, 120, 145-147, 181, 184-187, 196, 202, 208-214, 253, 258, 301-307
-src\services\auth_roles.py                                     19     10    47%   11, 18-25, 31-33
-src\services\email.py                                          21      0   100%
-src\services\qr.py                                             31      6    81%   32-35, 39-40
-src\services\search.py                                         90     57    37%   22, 25-36, 39-40, 43-46, 49-50, 53-54, 57-63, 68, 71-88, 91-92, 97-98, 101-102, 107, 110-130, 133-134, 137-138, 141-142, 145-146
-src\services\secrets_manager.py                                33      5    85%   57-61
-src\tests\__init__.py                                           0      0   100%
-src\tests\conftest.py                                         156     29    81%   113-117, 121-125, 170, 183, 227, 248-278
-src\tests\repository\__init__.py                                0      0   100%
-src\tests\repository\test_repository_tags.py                   59     44    25%   9-20, 25-44, 49-65, 70-73, 78-108
-src\tests\repository\test_unit_repository_comments.py          55      2    96%   107, 112
-src\tests\repository\test_unit_repository_descriptions.py      63      0   100%
-src\tests\repository\test_unit_repository_pictures.py         148      0   100%
-src\tests\repository\test_unit_repository_reactions.py         56      7    88%   50-57
-src\tests\repository\test_unit_repository_user.py              58      0   100%
-src\tests\routes\__init__.py                                    0      0   100%
-src\tests\routes\test_routes_admin.py                           8      4    50%   9-15
-src\tests\routes\test_routes_auth.py                          151      6    96%   193-195, 219-221
-src\tests\routes\test_routes_comments.py                       63      1    98%   98
-src\tests\routes\test_routes_descriptions.py                  116      0   100%
-src\tests\routes\test_routes_messages.py                       11      0   100%
-src\tests\routes\test_routes_pictures.py                      146     29    80%   209-262
-src\tests\routes\test_routes_rating.py                         33     26    21%   18-94
-src\tests\routes\test_routes_search.py                         65     39    40%   35-37, 41-45, 61-139, 146-147, 154-155
-src\tests\routes\test_routes_users.py                          52      0   100%
-src\tests\test_access_required.py                              35     18    49%   16-19, 23-27, 31-34, 38-42
-src\tests\test_services_qr.py                                  24     17    29%   7-28, 32-48
+main.py                                                        31      3    90%   49-56, 59
+src/__init__.py                                                 0      0   100%
+src/conf/__init__.py                                            0      0   100%
+src/conf/cloudinary.py                                         13      0   100%
+src/database/__init__.py                                        0      0   100%
+src/database/db.py                                             11      4    64%   22-26
+src/database/models.py                                         91      1    99%   79
+src/repository/__init__.py                                      0      0   100%
+src/repository/comments.py                                     28      0   100%
+src/repository/descriptions.py                                 26      0   100%
+src/repository/messages.py                                     13      7    46%   30-36, 59-62
+src/repository/pictures.py                                     83      4    95%   211, 215-217
+src/repository/rating.py                                       35      1    97%   68
+src/repository/reactions.py                                    62      5    92%   23-24, 47, 49, 104
+src/repository/search.py                                       24      9    62%   45, 48, 65-82
+src/repository/tags.py                                         30      1    97%   56
+src/repository/users.py                                        58     12    79%   63-66, 111, 138-146
+src/routes/__init__.py                                          0      0   100%
+src/routes/auth.py                                             98      2    98%   73, 201
+src/routes/comments.py                                         36      0   100%
+src/routes/descriptions.py                                     48      0   100%
+src/routes/main_router.py                                       0      0   100%
+src/routes/messages.py                                         20      6    70%   38-46, 70-71
+src/routes/pictures.py                                         77      2    97%   225, 228
+src/routes/rating.py                                           31      1    97%   75
+src/routes/reactions.py                                        22      0   100%
+src/routes/search.py                                           11      1    91%   36
+src/routes/tags.py                                             13      1    92%   39
+src/routes/users.py                                            59     14    76%   124-128, 145-152, 171, 191-192
+src/schemas.py                                                137      0   100%
+src/services/__init__.py                                        0      0   100%
+src/services/auth.py                                          114     26    77%   100, 120, 145-147, 181, 184-187, 196, 202, 208-214, 253, 258, 301-307
+src/services/auth_roles.py                                     19      9    53%   19-27, 33-36
+src/services/email.py                                          21      0   100%
+src/services/qr.py                                             31      2    94%   39-40
+src/services/secrets_manager.py                                33      5    85%   57-61
+src/tests/__init__.py                                           0      0   100%
+src/tests/conftest.py                                         147      2    99%   173, 186
+src/tests/repository/__init__.py                                0      0   100%
+src/tests/repository/test_repository_tags.py                   59      0   100%
+src/tests/repository/test_unit_repository_comments.py          55      0   100%
+src/tests/repository/test_unit_repository_descriptions.py      63      0   100%
+src/tests/repository/test_unit_repository_pictures.py         148      0   100%
+src/tests/repository/test_unit_repository_reactions.py         47      0   100%
+src/tests/repository/test_unit_repository_user.py              60      0   100%
+src/tests/routes/__init__.py                                    0      0   100%
+src/tests/routes/test_routes_auth.py                          151      0   100%
+src/tests/routes/test_routes_comments.py                       76      0   100%
+src/tests/routes/test_routes_descriptions.py                  168      0   100%
+src/tests/routes/test_routes_messages.py                       11      0   100%
+src/tests/routes/test_routes_pictures.py                      178      0   100%
+src/tests/routes/test_routes_rating.py                         41      0   100%
+src/tests/routes/test_routes_reactions.py                      33      0   100%
+src/tests/routes/test_routes_search.py                         13      0   100%
+src/tests/routes/test_routes_tags.py                           25      0   100%
+src/tests/routes/test_routes_users.py                          47      0   100%
+src/tests/test_services_qr.py                                  24      0   100%
 -----------------------------------------------------------------------------------------
-TOTAL                                                        2802    621    78%
+TOTAL                                                        2621    118    95%
 ```
 
 ## 📁 Project Structure
