@@ -69,7 +69,7 @@ def user():
 
     return UserTest(id=1,
                     username="example",
-                    email="including@o2.pl",
+                    email="example@example.com",
                     password="secret"
                     )
 
