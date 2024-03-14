@@ -197,7 +197,7 @@ src/repository/comments.py                                     28      0   100%
 src/repository/descriptions.py                                 26      0   100%
 src/repository/messages.py                                     13      7    46%   30-36, 59-62
 src/repository/pictures.py                                     83      4    95%   211, 215-217
-src/repository/rating.py                                       35      1    97%   67
+src/repository/rating.py                                       35      1    97%   68
 src/repository/reactions.py                                    62      5    92%   23-24, 47, 49, 104
 src/repository/search.py                                       24      9    62%   45, 48, 65-82
 src/repository/tags.py                                         30      1    97%   56
@@ -206,7 +206,7 @@ src/routes/__init__.py                                          0      0   100%
 src/routes/auth.py                                             98      2    98%   73, 201
 src/routes/comments.py                                         36      0   100%
 src/routes/descriptions.py                                     48      0   100%
-src/routes/main_router.py                                     176    127    28%   29-36, 44-54, 63-66, 74-86, 94-112, 122-133, 138, 151-169, 179-190, 199-214, 221-236, 241, 248-275, 280-283, 300-322
+src/routes/main_router.py                                       0      0   100%
 src/routes/messages.py                                         20      6    70%   38-46, 70-71
 src/routes/pictures.py                                         77      2    97%   225, 228
 src/routes/rating.py                                           31      1    97%   75
@@ -217,7 +217,7 @@ src/routes/users.py                                            59     14    76% 
 src/schemas.py                                                137      0   100%
 src/services/__init__.py                                        0      0   100%
 src/services/auth.py                                          114     26    77%   100, 120, 145-147, 181, 184-187, 196, 202, 208-214, 253, 258, 301-307
-src/services/auth_roles.py                                     19      9    53%   19-26, 32-34
+src/services/auth_roles.py                                     19      9    53%   19-27, 33-36
 src/services/email.py                                          21      0   100%
 src/services/qr.py                                             31      2    94%   39-40
 src/services/secrets_manager.py                                33      5    85%   57-61
@@ -243,7 +243,7 @@ src/tests/routes/test_routes_tags.py                           25      0   100%
 src/tests/routes/test_routes_users.py                          47      0   100%
 src/tests/test_services_qr.py                                  24      0   100%
 -----------------------------------------------------------------------------------------
-TOTAL                                                        2797    245    91%
+TOTAL                                                        2621    118    95%
 ```
 
 ## 📁 Project Structure
