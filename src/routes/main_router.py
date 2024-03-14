@@ -185,7 +185,11 @@ async def get_picture(request: Request,
 
     picture = await picture_repository.get_one_picture(picture_id=picture_id, db=db)
     username_uploader = db.query(User.username).join(Picture, Picture.user_id == User.id).filter(Picture.id == picture_id).first()[0]
-    comments = db.query(Comment.content, User.username).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
+    comments = db.query(Comment.content,
+                        User.username,
+                        Comment.id,
+                        Comment.user_id,
+    ).join(User).filter(Comment.picture_id == picture_id).order_by(Comment.id.desc()).all()
 
     if not picture:
         raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
@@ -217,6 +221,64 @@ async def add_comment(picture_id: int = Form(...),
     db.commit()
     db.refresh(comment)
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/comment/edit/{comment_id}", response_class=HTMLResponse)
+async def edit_comment_form(request: Request,
+                            comment_id: int,
+                            db: Session = Depends(get_db),
+                            current_user: User = Depends(auth_service.get_current_user_optional)
+                            ):
+
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You must be logged in to edit comments.")
+
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+
+    if not comment or comment.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own comments.")
+
+    return templates.TemplateResponse("comment_edit.html", {"request": request, "comment": comment})
+
+
+@router.post("/comment/edit/{comment_id}")
+async def submit_edit_comment(comment_id: int,
+                              content: str = Form(...),
+                              db: Session = Depends(get_db),
+                              current_user: User = Depends(auth_service.get_current_user_optional)
+                              ):
+
+    comment = db.query(Comment).filter(Comment.id == comment_id, Comment.user_id == current_user.id).first()
+
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
+
+    comment.content = content
+    comment.updated_at = datetime.now()
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{comment.picture_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/comment/delete/{comment_id}")
+async def delete_comment(comment_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: User = Depends(auth_service.get_current_user_optional)):
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Musisz być zalogowany.")
+
+    if not current_user.admin and not current_user.moderator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do usunięcia komentarza.")
+
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Komentarz nie został znaleziony.")
+
+    db.delete(comment)
+    db.commit()
+
+    return RedirectResponse(url=f"/picture/{comment.picture_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/picture/delete/{picture_id}")
@@ -287,34 +349,32 @@ async def authentication_page(request: Request):
 
 @router.post("/login", response_class=HTMLResponse)
 async def login_form(request: Request,
-                     db: Session = Depends(get_db)
-                     ):
+                     db: Session = Depends(get_db)):
     form = await request.form()
     email = form.get('email')
     password = form.get('password')
-    errors = []
 
-    user = db.query(User).filter(User.email == email).first() if not errors else None
+    user = db.query(User).filter(User.email == email).first()
 
-    if user.ban_status:
-        msg = 'User is Baned'
-        context = {'request': request, 'msg': msg}
-        return templates.TemplateResponse('login.html', context)
+    if user:
+        if user.ban_status:
+            msg = 'User is banned.'
+            context = {'request': request, 'msg': msg}
+            return templates.TemplateResponse('login.html', context)
 
-    if user and auth_service.verify_password(password, user.password):
-        data = {"sub": email}
-        jwt_token = auth_service.create_access_token(data=data)
-        jwt_refresh_token = auth_service.create_refresh_token(data=data)
-        pictures = db.query(Picture).all()
+        if auth_service.verify_password(password, user.password):
+            data = {"sub": email}
+            jwt_token = auth_service.create_access_token(data=data)
+            jwt_refresh_token = auth_service.create_refresh_token(data=data)
+            pictures = db.query(Picture).all()
 
-        context = {'request': request, 'user': user, 'pictures': pictures}
-        response = templates.TemplateResponse('home.html', context)
-        response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
-        response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
-        return response
-    else:
-        msg = 'Incorrect Username or Password'
+            context = {'request': request, 'user': user, 'pictures': pictures}
+            response = templates.TemplateResponse('home.html', context)
+            response.set_cookie(key='access_token', value=f'Bearer {jwt_token}', httponly=True)
+            response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
+            return response
 
+    msg = 'Incorrect Username or Password'
     context = {'request': request, 'msg': msg}
     return templates.TemplateResponse('login.html', context)
 
