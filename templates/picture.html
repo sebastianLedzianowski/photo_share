@@ -4,7 +4,10 @@
     <div class="row">
         <div class="col-12 col-md-5">
             <img src="{{ picture.picture_url }}" alt="Picture" class="img-fluid w-100 h-100">
+            <!-- Download Picture Button -->
+            <a href="{{ picture.picture_url }}" download="{{ picture.id }}.jpg" class="btn btn-success mt-2">Download Picture</a>
         </div>
+
         <div class="col-12 col-md-6">
             <div class="uploader-info mb-3">
                 <h4>Uploaded by</h4>
