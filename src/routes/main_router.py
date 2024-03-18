@@ -16,6 +16,7 @@ from src.conf.cloudinary import configure_cloudinary, generate_random_string
 from src.services.qr import generate_qr_and_upload_to_cloudinary
 import cloudinary
 import cloudinary.uploader
+from fastapi import HTTPException, status
 
 templates = Jinja2Templates(directory='templates')
 router = APIRouter()
@@ -335,40 +336,40 @@ async def delete_picture(picture_id: int,
 async def edit_picture_form(request: Request,
                             picture_id: int,
                             db: Session = Depends(get_db),
-                            current_user: User = Depends(auth_service.get_current_user_optional)
-                            ):
+                            current_user: User = Depends(auth_service.get_current_user_optional)):
 
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
-    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+    if current_user.admin:
+        picture = db.query(Picture).filter(Picture.id == picture_id).first()
+    else:
+        picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
+
     if not picture:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
 
-    return templates.TemplateResponse("picture_edit.html", {"request": request, "picture": picture})
+    return templates.TemplateResponse("picture_edit.html", {"request": request, "picture": picture, "user": current_user})
 
 
-@router.post("/picture/edit/{picture_id}")
-async def edit_picture(picture_id: int,
-                       description: str = Form(...),
-                       db: Session = Depends(get_db),
-                       current_user: User = Depends(auth_service.get_current_user_optional)
-                       ):
+@router.post("/picture/edit/{picture_id}", response_class=HTMLResponse)
+async def submit_edit_picture(picture_id: int,
+                              description: str = Form(...),
+                              db: Session = Depends(get_db),
+                              current_user: User = Depends(auth_service.get_current_user_optional)):
 
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+    if current_user.admin:
+        picture = db.query(Picture).filter(Picture.id == picture_id).first()
+    else:
+        picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
 
-    picture = db.query(Picture).filter(Picture.id == picture_id, Picture.user_id == current_user.id).first()
     if not picture:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Picture not found or you don't have permission to edit it.")
+        raise HTTPException(status_code=404, detail="Picture not found or you don't have permission to edit it.")
 
     picture.description = description
     db.commit()
 
     return RedirectResponse(url=f"/picture/{picture_id}", status_code=status.HTTP_303_SEE_OTHER)
-
-
-from fastapi import HTTPException, status
 
 
 @router.post("/picture/rate/{picture_id}")
