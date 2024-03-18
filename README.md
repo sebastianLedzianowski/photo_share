@@ -175,13 +175,13 @@ You can now access the PhotoShare application either through your local setup at
 
 ## 🧑🏻‍🤝‍🧑🏽 Creators
 
-- github.com/sebastianLedzianowski - Project Manager
-- github.com/Camilleus - Scrum Master
-- github.com/OktawianCzakiert - Developer
-- github.com/Heesej - Developer
-- github.com/bgozlinski - Developer
-- github.com/julotec - Developer
-- github.com/KrzysztofKazimierczak - Developer
+- [Project Manager - Sebastian Ledzianowski](github.com/sebastianLedzianowski)
+- [Scrum Master - Kamil "Camilleus" Truszkowski](github.com/Camilleus)
+- [Developer - Oktawian Czakiert](github.com/OktawianCzakiert)
+- [Developer - Tomasz Heese](github.com/Heesej)
+- [Developer - Bartek Goźliński](github.com/bgozlinski)
+- [Developer - Julia](github.com/julotec)
+- [Developer - Krzysztof Kazimierczak](github.com/KrzysztofKazimierczak)
 
 ## 🤝 Contributing
 
